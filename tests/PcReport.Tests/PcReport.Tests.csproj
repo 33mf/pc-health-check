@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <AssemblyName>PcReport.Tests</AssemblyName>
+    <RootNamespace>Microforge.PcReport.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- WMI を叩くテスト（AC5）があるので 32bit 化しない -->
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- AC5：テストの中でだけ、実機のシリアル番号等を取得して HTML に混ざっていないか確かめる -->
+    <Reference Include="System.Management" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      判定層は exe の中にある（AC1：配布物を exe 1 つに保つため DLL に切り出さない）。
+      .NET Framework では exe をそのままアセンブリ参照できる。
+    -->
+    <ProjectReference Include="..\..\src\PcReport\PcReport.csproj" />
+  </ItemGroup>
+
+</Project>
