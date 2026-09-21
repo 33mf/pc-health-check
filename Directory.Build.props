@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <RootNamespace>Microforge.PcReport</RootNamespace>
+    <Company>Microforge</Company>
+    <Product>PC 状態レポート (Microforge)</Product>
+    <Copyright>Microforge</Copyright>
+    <Version>1.0.0</Version>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      .NET Framework 4.8 の参照アセンブリ。gram17 には Visual Studio / Targeting Pack が
+      入っていないため、NuGet の参照アセンブリパッケージでビルドする。
+      これは「ビルド時にだけ要るもの」で、生成される exe には含まれない（AC1 の exe 単体配布に影響しない）。
+    -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

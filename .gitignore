@@ -1,0 +1,31 @@
+# Cowork handoff（dispatch / report / reference）は git 管理外（R-Repo-1）
+cowork/
+
+# ビルド生成物
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# このツールが生成するレポート
+pc-report_*.html
+
+# secrets（repository_hygiene §3。このリポジトリに secret は無いが規約として置く）
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.*
+secrets/
+
+# OS / Editor
+Thumbs.db
+.DS_Store
+.idea/
+*.swp
+*~
+
+# Logs
+*.log

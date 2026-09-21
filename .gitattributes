@@ -1,0 +1,42 @@
+# repository_hygiene.md §8 — LF を正典として宣言し、Windows + OneDrive の phantom diff を根治する。
+# 実在拡張子は `git ls-files` で棚卸しして網羅すること。
+
+* text=auto eol=lf
+
+# --- テキスト（LF 正典） ---
+*.cs        text eol=lf
+*.csproj    text eol=lf
+*.sln       text eol=lf
+*.props     text eol=lf
+*.targets   text eol=lf
+*.config    text eol=lf
+*.manifest  text eol=lf
+*.md        text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.js        text eol=lf
+*.json      text eol=lf
+*.xml       text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.txt       text eol=lf
+.gitignore      text eol=lf
+.gitattributes  text eol=lf
+
+# --- Windows 専用スクリプト（CRLF） ---
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# --- バイナリ ---
+*.exe   binary
+*.dll   binary
+*.pdb   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.zip   binary
