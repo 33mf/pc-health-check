@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>PcReport</AssemblyName>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!--
+      AC1：空のフォルダに exe だけをコピーして動くこと。
+      DebugType none で pdb を作らず、出力を PcReport.exe + PcReport.exe.config の 2 つに留める
+      （config は既定生成。exe 単体コピーでも動作するのでコピー対象は exe だけでよい）。
+    -->
+    <DebugType>none</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <SatelliteResourceLanguages>ja</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
+    <!-- Windows Update Agent (COM) を dynamic で叩くために要る -->
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+</Project>
