@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PCR-002 MSIX 可否検証用のパッケージマニフェスト（Store 提出用ではない）。
+  - Identity / Publisher は検証用の仮の値。Publisher は New-DevCert.ps1 が作る自己署名証明書の
+    Subject と一字一句一致していなければ署名・インストールできない。
+  - Store 提出時は Partner Center が払い出す Identity Name / Publisher に差し替える。
+  - 製品の exe（src/PcReport）は一切変えずに、そのまま同梱する。
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="Microforge.PcReport.Dev"
+    Publisher="CN=Microforge PCR-002 Dev (self-signed)"
+    Version="1.0.0.0"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>PC 状態レポート (検証版)</DisplayName>
+    <PublisherDisplayName>Microforge</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- 17763 = Windows 10 1809。.NET Framework 4.8 は Windows に同梱なので依存パッケージは無い -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="ja-JP" />
+  </Resources>
+
+  <Applications>
+    <Application Id="PcReport" Executable="PcReport.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="PC 状態レポート (検証版)"
+        Description="Windows の状態を調べて HTML 1 枚にまとめます"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Win32（.NET Framework）の exe をそのまま動かすのに必須。これ以外の capability は宣言しない -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

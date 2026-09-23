@@ -29,3 +29,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# MSIX 検証（PCR-002）の生成物。パッケージと証明書（.msix / .cer / .pfx）は out/ の外に出ても上げない
+packaging/msix/out/
+*.pfx
+*.cer
+*.msix
