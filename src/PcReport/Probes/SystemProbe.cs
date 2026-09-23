@@ -418,25 +418,31 @@ namespace Microforge.PcReport.Probes
         }
 
         /// <summary>
-        /// SMART 詳細。非昇格では「拒否」ではなく「空」で返る（SPEC §7-1 ①③）。
+        /// SMART 詳細。MSFT_StorageReliabilityCounter は**直接列挙すると昇格しても 0 行**で、
+        /// MSFT_PhysicalDisk からの関連付けでしか値が返らない（SPEC §7-1 ⑪、PCR-002 の切り分け）。
+        /// 非昇格では関連付けでも「拒否」ではなく「空」で返る（PCR-003 で実測）。
         /// 空を Empty として返し、その理由を権限で分けるのは判定層の仕事。
         /// </summary>
-        static ProbeResult<List<ReliabilityCounter>> ProbeReliability()
+        internal static ProbeResult<List<ReliabilityCounter>> ProbeReliability()
         {
-            const string src = "MSFT_StorageReliabilityCounter";
+            const string src = "MSFT_PhysicalDisk → MSFT_StorageReliabilityCounter（関連付け）";
             return RunList(src, () =>
             {
                 var list = new List<ReliabilityCounter>();
-                foreach (var c in WmiGateway.Query(WmiGateway.StorageNs,
-                             "SELECT DeviceId, Temperature, PowerOnHours, Wear FROM MSFT_StorageReliabilityCounter"))
+                // 関連付けには __PATH が要るので、キー（ObjectId）を含めて取る
+                foreach (var d in WmiGateway.Query(WmiGateway.StorageNs,
+                             "SELECT ObjectId, DeviceId FROM MSFT_PhysicalDisk"))
                 {
-                    list.Add(new ReliabilityCounter
+                    foreach (var c in WmiGateway.Related(d, "MSFT_StorageReliabilityCounter"))
                     {
-                        DeviceId = WmiGateway.Str(c, "DeviceId"),
-                        Temperature = WmiGateway.IntOrNull(c, "Temperature"),
-                        PowerOnHours = WmiGateway.LongOrNull(c, "PowerOnHours"),
-                        Wear = WmiGateway.IntOrNull(c, "Wear")
-                    });
+                        list.Add(new ReliabilityCounter
+                        {
+                            DeviceId = WmiGateway.Str(d, "DeviceId"),
+                            Temperature = WmiGateway.IntOrNull(c, "Temperature"),
+                            PowerOnHours = WmiGateway.LongOrNull(c, "PowerOnHours"),
+                            Wear = WmiGateway.IntOrNull(c, "Wear")
+                        });
+                    }
                 }
                 // 行はあるが全部ゼロ／null＝実質「報告していない」。これも空として扱う
                 if (!list.Any(x => x.HasAnyValue)) return new List<ReliabilityCounter>();

@@ -591,8 +591,10 @@ namespace Microforge.PcReport.Analysis
 
         /// <summary>
         /// 詳しい SMART 情報。
-        /// SPEC §7-1 ③ の実測：非昇格では「拒否」ではなく「空」が返り、昇格すると値が取れた。
-        /// ただし昇格しても空の機種・VM がありうるので、空のときの理由を権限で分ける（R-Evidence-5）。
+        /// SPEC §7-1 ③⑪ の実測：関連付けで取ると、非昇格では「拒否」ではなく「空」が返り、昇格すると値が取れた。
+        /// ただし昇格しても空の機種・VM がありうるので、取れないときの理由を権限で分ける（R-Evidence-5）。
+        /// 「管理者として実行すると取得できることがあります」は、非昇格のときにしか出さない
+        /// （昇格しているのに出すと、やっても取れない案内になる。原則 2）。
         /// </summary>
         static Item SmartDetailItem(SystemSnapshot s)
         {
@@ -600,6 +602,9 @@ namespace Microforge.PcReport.Analysis
             var p = s.Reliability;
 
             if (p == null) return Item.Unavailable(label, "収集が行われませんでした", null);
+
+            if (p.Outcome == ProbeOutcome.Denied && s.RanAsAdmin)
+                return Item.Unavailable(label, "管理者権限で実行していても、読み取りを拒否されました", p.Source);
 
             if (p.Outcome == ProbeOutcome.Empty)
                 return Item.Unavailable(label,

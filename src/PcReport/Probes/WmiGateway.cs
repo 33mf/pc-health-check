@@ -37,6 +37,19 @@ namespace Microforge.PcReport.Probes
             }
         }
 
+        /// <summary>
+        /// 関連付けでたどった先のインスタンス（Get-CimAssociatedInstance 相当）。
+        /// MSFT_StorageReliabilityCounter のように、直接列挙すると空で関連付けでしか値が返らないクラスに使う。
+        /// o は、キー プロパティを含めて取得したもの（__PATH が要る）でなければならない。
+        /// </summary>
+        public static List<ManagementObject> Related(ManagementObject o, string relatedClass)
+        {
+            var list = new List<ManagementObject>();
+            foreach (ManagementObject r in o.GetRelated(relatedClass, null, null, null, null, null, false, Opt))
+                list.Add(r);
+            return list;
+        }
+
         public static ManagementObject First(string ns, string wql)
         {
             var l = Query(ns, wql);

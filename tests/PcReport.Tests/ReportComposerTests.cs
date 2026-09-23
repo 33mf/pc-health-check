@@ -343,6 +343,52 @@ namespace Microforge.PcReport.Tests
         }
 
         [Fact]
+        public void 非昇格でSMART詳細が拒否されたら管理者権限が理由になる()
+        {
+            var s = Fixtures.Healthy();
+            s.RanAsAdmin = false;
+            s.Reliability = ProbeResult<List<ReliabilityCounter>>.Denied("MSFT_StorageReliabilityCounter");
+
+            var item = Find(Compose(s), "詳しい SMART 情報");
+            Assert.Equal(Status.Unavailable, item.Status);
+            Assert.Contains("管理者権限", item.Reason);
+        }
+
+        [Fact]
+        public void 昇格していてSMART詳細が拒否されたら管理者として実行を勧めない()
+        {
+            // 昇格しているのに「管理者権限が必要」「管理者として実行すると…」と出すと、やっても取れない案内になる（原則 2）
+            var s = Fixtures.Healthy();
+            s.RanAsAdmin = true;
+            s.Reliability = ProbeResult<List<ReliabilityCounter>>.Denied("MSFT_StorageReliabilityCounter");
+
+            var item = Find(Compose(s), "詳しい SMART 情報");
+            Assert.Equal(Status.Unavailable, item.Status);
+            Assert.Contains("拒否", item.Reason);
+            Assert.DoesNotContain("管理者権限が必要", item.Reason);
+            Assert.DoesNotContain("管理者として実行すると", item.Reason);
+        }
+
+        [Fact]
+        public void 昇格していればSMART詳細の理由に管理者として実行の案内は出ない()
+        {
+            // Empty / Denied / Failed のどれでも、昇格時は「管理者として実行」を勧めない
+            foreach (var p in new[]
+            {
+                ProbeResult<List<ReliabilityCounter>>.Empty("情報源に値がありませんでした", "x"),
+                ProbeResult<List<ReliabilityCounter>>.Denied("x"),
+                ProbeResult<List<ReliabilityCounter>>.Failed("取得中にエラーが発生しました", "x")
+            })
+            {
+                var s = Fixtures.Healthy();
+                s.RanAsAdmin = true;
+                s.Reliability = p;
+                var item = Find(Compose(s), "詳しい SMART 情報");
+                Assert.DoesNotContain("管理者として実行", item.Reason);
+            }
+        }
+
+        [Fact]
         public void SMART詳細が取れたら温度と使用時間を出す()
         {
             var item = Find(Compose(Fixtures.Healthy()), "詳しい SMART 情報");
