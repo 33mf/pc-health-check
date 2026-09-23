@@ -203,6 +203,39 @@ namespace Microforge.PcReport.Tests
             }
         }
 
+        [Fact]
+        public void 同じ名前の既存レポートが開かれていて書けなければ消さずに次の候補へ進む()
+        {
+            // 同じ分に再実行し、前のレポートを別のプロセスが（削除は許して）開いている状況
+            var root = Path.Combine(Path.GetTempPath(), "PcReportTests_" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var first = Path.Combine(root, "exe");
+                var second = Path.Combine(root, "desktop");
+                Directory.CreateDirectory(first);
+                var existing = Path.Combine(first, FileName);
+                File.WriteAllText(existing, "前のレポート");
+
+                SaveResult r;
+                using (new FileStream(existing, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete))
+                {
+                    r = ReportSaver.Save("新しいレポート", FileName, new[]
+                    {
+                        new SaveCandidate(SaveLocation.ExeFolder, first),
+                        new SaveCandidate(SaveLocation.Desktop, second)
+                    });
+                }
+
+                Assert.Equal(SaveLocation.Desktop, r.Location);
+                Assert.True(File.Exists(existing), "開かれていた既存のレポートが消された");
+                Assert.Equal("前のレポート", File.ReadAllText(existing));
+            }
+            finally
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
         /// <summary>AC6：生成した HTML に、保存先の候補になりうるパスが含まれない（設計原則 1）。</summary>
         [Fact]
         public void 生成したHTMLに保存先のパスが含まれない()

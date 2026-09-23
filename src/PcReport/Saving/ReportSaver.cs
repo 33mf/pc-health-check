@@ -99,13 +99,16 @@ namespace Microforge.PcReport.Saving
         public static void WriteFile(string path, string html)
         {
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+            // 同じ分に作った既存のレポート（別のプロセスが開いている等）は、書けなくても消さない
+            bool existed = File.Exists(path);
             try
             {
                 File.WriteAllText(path, html, new UTF8Encoding(true));
             }
             catch (IOException)
             {
-                try { File.Delete(path); } catch { /* 消せなくても、次の候補へ進むことを優先する */ }
+                if (!existed)
+                    try { File.Delete(path); } catch { /* 消せなくても、次の候補へ進むことを優先する */ }
                 throw;
             }
         }

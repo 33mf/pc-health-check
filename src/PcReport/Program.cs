@@ -89,8 +89,10 @@ namespace Microforge.PcReport
             }
             catch (Exception e)
             {
-                if (console) Console.Error.WriteLine("PcReport: " + e.Message);
-                else Notify("レポートを作れませんでした。\n\n" + e.Message, MessageBoxIcon.Warning);
+                // 例外の本文はパス（ユーザー名を含む）を含みうるので、種類だけを出す（設計原則 1）
+                var msg = "レポートを作れませんでした。（原因の種類：" + e.GetType().Name + "）";
+                if (console) Console.Error.WriteLine("PcReport: " + msg);
+                else Notify(msg, MessageBoxIcon.Warning);
                 return 1;
             }
         }
@@ -98,21 +100,28 @@ namespace Microforge.PcReport
         /// <summary>
         /// 通知を最前面に出す。収集に時間がかかる間に利用者が別のウィンドウを触っていると、
         /// オーナーの無い MessageBox は背面に回り、OK を待ったまま「何も起きない」ように見えるため。
+        /// オーナーは見えない（Opacity 0）が、タスクバーにはボタンを出す（ほかの最前面ウィンドウの下に入っても探せるように）。
+        /// 対話できるデスクトップが無い等で表示できなければ、何もしない（保存済みのレポートを失敗扱いにしない）。
         /// </summary>
         static void Notify(string text, MessageBoxIcon icon)
         {
-            using (var owner = new Form
+            try
             {
-                TopMost = true,
-                ShowInTaskbar = false,
-                Opacity = 0,
-                StartPosition = FormStartPosition.CenterScreen
-            })
-            {
-                owner.Show();
-                owner.Activate();
-                MessageBox.Show(owner, text, "PC 状態レポート", MessageBoxButtons.OK, icon);
+                using (var owner = new Form
+                {
+                    Text = "PC 状態レポート",
+                    TopMost = true,
+                    ShowInTaskbar = true,
+                    Opacity = 0,
+                    StartPosition = FormStartPosition.CenterScreen
+                })
+                {
+                    owner.Show();
+                    owner.Activate();
+                    MessageBox.Show(owner, text, "PC 状態レポート", MessageBoxButtons.OK, icon);
+                }
             }
+            catch (Exception) { /* 通知を出せない環境。保存・終了コードには影響させない */ }
         }
 
         /// <summary>
