@@ -45,8 +45,8 @@ namespace Microforge.PcReport.Probes
         public static List<ManagementObject> Related(ManagementObject o, string relatedClass)
         {
             var list = new List<ManagementObject>();
-            foreach (ManagementObject r in o.GetRelated(relatedClass, null, null, null, null, null, false, Opt))
-                list.Add(r);
+            using (var col = o.GetRelated(relatedClass, null, null, null, null, null, false, Opt))
+                foreach (ManagementObject r in col) list.Add(r);
             return list;
         }
 

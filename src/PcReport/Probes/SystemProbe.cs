@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Management;
 using System.Security.Principal;
 using System.Text.RegularExpressions;
 using Microforge.PcReport.Model;
@@ -429,11 +430,21 @@ namespace Microforge.PcReport.Probes
             return RunList(src, () =>
             {
                 var list = new List<ReliabilityCounter>();
+                Exception firstError = null;
                 // 関連付けには __PATH が要るので、キー（ObjectId）を含めて取る
                 foreach (var d in WmiGateway.Query(WmiGateway.StorageNs,
                              "SELECT ObjectId, DeviceId FROM MSFT_PhysicalDisk"))
                 {
-                    foreach (var c in WmiGateway.Related(d, "MSFT_StorageReliabilityCounter"))
+                    // USB 接続のディスク等は、そのディスクだけ関連付けに失敗することがある。
+                    // 1 台の失敗で、内蔵ディスクの取れた値まで消さない
+                    List<ManagementObject> counters;
+                    try { counters = WmiGateway.Related(d, "MSFT_StorageReliabilityCounter"); }
+                    catch (Exception e)
+                    {
+                        if (firstError == null) firstError = e;
+                        continue;
+                    }
+                    foreach (var c in counters)
                     {
                         list.Add(new ReliabilityCounter
                         {
@@ -445,8 +456,13 @@ namespace Microforge.PcReport.Probes
                     }
                 }
                 // 行はあるが全部ゼロ／null＝実質「報告していない」。これも空として扱う
-                if (!list.Any(x => x.HasAnyValue)) return new List<ReliabilityCounter>();
-                return list;
+                if (!list.Any(x => x.HasAnyValue))
+                {
+                    // どのディスクからも値が取れず、失敗したディスクがあれば、その理由（拒否／失敗）で返す
+                    if (firstError != null) throw firstError;
+                    return new List<ReliabilityCounter>();
+                }
+                return list.Where(x => x.HasAnyValue).ToList();
             });
         }
 
