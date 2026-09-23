@@ -92,11 +92,22 @@ namespace Microforge.PcReport.Saving
             };
         }
 
-        /// <summary>BOM 付き UTF-8 で書く（ブラウザが文字コードを取り違えないように）。フォルダが無ければ作る。</summary>
+        /// <summary>
+        /// BOM 付き UTF-8 で書く（ブラウザが文字コードを取り違えないように）。フォルダが無ければ作る。
+        /// 書いている途中で失敗したら（ディスク満杯など）、書きかけのファイルを残さない。
+        /// </summary>
         public static void WriteFile(string path, string html)
         {
             System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
-            File.WriteAllText(path, html, new UTF8Encoding(true));
+            try
+            {
+                File.WriteAllText(path, html, new UTF8Encoding(true));
+            }
+            catch (IOException)
+            {
+                try { File.Delete(path); } catch { /* 消せなくても、次の候補へ進むことを優先する */ }
+                throw;
+            }
         }
 
         public static SaveResult Save(string html, string fileName, IList<SaveCandidate> candidates)

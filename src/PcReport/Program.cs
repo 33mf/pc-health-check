@@ -58,29 +58,60 @@ namespace Microforge.PcReport
                 {
                     // SPEC §9-5：いつもの場所に書けず退避したときだけ、開く前に 1 回知らせる。
                     // 場所の呼び名だけを出し、フルパスは出さない（ユーザー名が含まれる。設計原則 1）
-                    MessageBox.Show(
-                        "レポートは" + ReportSaver.DisplayName(saved.Location) + "に保存しました。",
-                        "PC 状態レポート", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    Notify("レポートは" + ReportSaver.DisplayName(saved.Location) + "に保存しました。",
+                        MessageBoxIcon.Information);
                 }
 
-                if (open) Process.Start(new ProcessStartInfo(saved.Path) { UseShellExecute = true });
+                if (open)
+                {
+                    // 保存はできている。開けなかったことを「作れなかった」と取り違えさせない
+                    try { Process.Start(new ProcessStartInfo(saved.Path) { UseShellExecute = true }); }
+                    catch (Exception)
+                    {
+                        var msg = "レポートは" + ReportSaver.DisplayName(saved.Location)
+                                  + "に保存しましたが、ブラウザで開けませんでした。";
+                        if (console) Console.Error.WriteLine("PcReport: " + msg);
+                        else Notify(msg, MessageBoxIcon.Warning);
+                    }
+                }
                 return 0;
             }
             catch (ReportSaveException e)
             {
                 // 候補のどこにも書けなかった（SPEC §9-5）。文言は ReportSaver.FailureMessage のまま出す
-                if (console) Console.Error.WriteLine("PcReport: " + e.Message.Replace("\n\n", " ").Replace("\n", " "));
+                if (console)
+                    // 検証する人向けに元の例外の種類だけ添える（例外の本文はパスを含むので出さない）
+                    Console.Error.WriteLine("PcReport: " + e.Message.Replace("\n\n", " ").Replace("\n", " ")
+                        + (e.InnerException != null ? "（原因の種類：" + e.InnerException.GetType().Name + "）" : ""));
                 else
-                    MessageBox.Show(e.Message, "PC 状態レポート", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    Notify(e.Message, MessageBoxIcon.Warning);
                 return 1;
             }
             catch (Exception e)
             {
                 if (console) Console.Error.WriteLine("PcReport: " + e.Message);
-                else
-                    MessageBox.Show("レポートを作れませんでした。\n\n" + e.Message,
-                        "PC 状態レポート", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                else Notify("レポートを作れませんでした。\n\n" + e.Message, MessageBoxIcon.Warning);
                 return 1;
+            }
+        }
+
+        /// <summary>
+        /// 通知を最前面に出す。収集に時間がかかる間に利用者が別のウィンドウを触っていると、
+        /// オーナーの無い MessageBox は背面に回り、OK を待ったまま「何も起きない」ように見えるため。
+        /// </summary>
+        static void Notify(string text, MessageBoxIcon icon)
+        {
+            using (var owner = new Form
+            {
+                TopMost = true,
+                ShowInTaskbar = false,
+                Opacity = 0,
+                StartPosition = FormStartPosition.CenterScreen
+            })
+            {
+                owner.Show();
+                owner.Activate();
+                MessageBox.Show(owner, text, "PC 状態レポート", MessageBoxButtons.OK, icon);
             }
         }
 
