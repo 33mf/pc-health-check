@@ -1,15 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Forms;
 using Microforge.PcReport.Rendering;
+using Microforge.PcReport.Saving;
 
 namespace Microforge.PcReport
 {
     /// <summary>
-    /// ダブルクリック → 収集 → exe と同じ場所に HTML を保存 → 既定のブラウザで開く。
+    /// ダブルクリック → 収集 → exe と同じ場所に HTML を保存（書けなければ退避。ReportSaver）→ 既定のブラウザで開く。
     /// インストール・設定画面・初回ウィザード・通信は持たない（SPEC §3 原則 4・5）。
     ///
     /// 検証用オプション（編集長・Code が使う。ふつうの利用者は使わない）:
@@ -45,11 +46,33 @@ namespace Microforge.PcReport
                 var now = DateTime.Now;
                 var report = ReportBuilder.BuildFromLiveSystem(now);
                 var html = HtmlReport.Render(report);
-                var path = Save(html, ReportBuilder.FileNameFor(now), outDir);
+                var saved = ReportSaver.Save(html, ReportBuilder.FileNameFor(now), Candidates(outDir));
 
-                if (console) Console.Out.WriteLine(path);
-                if (open) Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+                if (console)
+                {
+                    Console.Out.WriteLine(saved.Path);
+                    if (saved.IsFallback)
+                        Console.Out.WriteLine("（退避：" + ReportSaver.DisplayName(saved.Location) + "）");
+                }
+                else if (saved.IsFallback)
+                {
+                    // SPEC §9-5：いつもの場所に書けず退避したときだけ、開く前に 1 回知らせる。
+                    // 場所の呼び名だけを出し、フルパスは出さない（ユーザー名が含まれる。設計原則 1）
+                    MessageBox.Show(
+                        "レポートは" + ReportSaver.DisplayName(saved.Location) + "に保存しました。",
+                        "PC 状態レポート", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+
+                if (open) Process.Start(new ProcessStartInfo(saved.Path) { UseShellExecute = true });
                 return 0;
+            }
+            catch (ReportSaveException e)
+            {
+                // 候補のどこにも書けなかった（SPEC §9-5）。文言は ReportSaver.FailureMessage のまま出す
+                if (console) Console.Error.WriteLine("PcReport: " + e.Message.Replace("\n\n", " ").Replace("\n", " "));
+                else
+                    MessageBox.Show(e.Message, "PC 状態レポート", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return 1;
             }
             catch (Exception e)
             {
@@ -62,42 +85,14 @@ namespace Microforge.PcReport
         }
 
         /// <summary>
-        /// SPEC §9-2：exe と同じ場所に保存し、書き込めなければデスクトップに退避する。
+        /// SPEC §9-2・§9-5：exe と同じ場所 → デスクトップ → %LOCALAPPDATA%\Microforge\PcReport → %TEMP% の順に試す。
         /// --out が指定されていれば、そこだけを使う（検証で保存先を取り違えないため）。
         /// </summary>
-        static string Save(string html, string fileName, string outDir)
+        static IList<SaveCandidate> Candidates(string outDir)
         {
-            // BOM 付き UTF-8。ブラウザが文字コードを取り違えないようにする
-            var enc = new UTF8Encoding(true);
-
-            string[] candidates;
             if (outDir != null)
-            {
-                Directory.CreateDirectory(outDir);
-                candidates = new[] { outDir };
-            }
-            else
-            {
-                candidates = new[]
-                {
-                    AppDomain.CurrentDomain.BaseDirectory,
-                    Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
-                };
-            }
-
-            Exception last = null;
-            foreach (var dir in candidates)
-            {
-                if (string.IsNullOrEmpty(dir)) continue;
-                try
-                {
-                    var p = Path.Combine(dir, fileName);
-                    File.WriteAllText(p, html, enc);
-                    return p;
-                }
-                catch (Exception e) { last = e; }
-            }
-            throw new IOException("レポートを保存できる場所が見つかりませんでした。", last);
+                return new[] { new SaveCandidate(SaveLocation.Specified, Path.GetFullPath(outDir)) };
+            return ReportSaver.DefaultCandidates();
         }
     }
 }
