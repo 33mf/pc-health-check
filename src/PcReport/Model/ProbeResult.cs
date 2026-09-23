@@ -37,6 +37,12 @@ namespace Microforge.PcReport.Model
         /// <summary>取得元（WMI クラス名やレジストリパス）。成否にかかわらず入れる。</summary>
         public string Source;
 
+        /// <summary>
+        /// Ok だが一部（複数ディスクのうち何台か等）は取れなかったときの、その理由。
+        /// 取れた分だけを出して「全部取れた」と読ませないため（設計原則 2）。
+        /// </summary>
+        public string PartialReason;
+
         public bool IsOk
         {
             get { return Outcome == ProbeOutcome.Ok && Value != null; }

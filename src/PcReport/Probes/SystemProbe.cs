@@ -427,43 +427,80 @@ namespace Microforge.PcReport.Probes
         internal static ProbeResult<List<ReliabilityCounter>> ProbeReliability()
         {
             const string src = "MSFT_PhysicalDisk → MSFT_StorageReliabilityCounter（関連付け）";
-            return RunList(src, () =>
+
+            List<ManagementObject> disks;
+            try
             {
-                var list = new List<ReliabilityCounter>();
-                Exception firstError = null;
                 // 関連付けには __PATH が要るので、キー（ObjectId）を含めて取る
-                foreach (var d in WmiGateway.Query(WmiGateway.StorageNs,
-                             "SELECT ObjectId, DeviceId FROM MSFT_PhysicalDisk"))
+                disks = WmiGateway.Query(WmiGateway.StorageNs, "SELECT ObjectId, DeviceId FROM MSFT_PhysicalDisk");
+            }
+            catch (Exception e)
+            {
+                return WmiGateway.IsAccessDenied(e)
+                    ? ProbeResult<List<ReliabilityCounter>>.Denied(src)
+                    : ProbeResult<List<ReliabilityCounter>>.Failed(WmiGateway.Explain(e), src);
+            }
+
+            var perDisk = new List<DiskReliability>();
+            foreach (var d in disks)
+            {
+                var r = new DiskReliability { DeviceId = WmiGateway.Str(d, "DeviceId") };
+                // USB 接続のディスク等は、そのディスクだけ関連付けに失敗することがある
+                try
                 {
-                    // USB 接続のディスク等は、そのディスクだけ関連付けに失敗することがある。
-                    // 1 台の失敗で、内蔵ディスクの取れた値まで消さない
-                    List<ManagementObject> counters;
-                    try { counters = WmiGateway.Related(d, "MSFT_StorageReliabilityCounter"); }
-                    catch (Exception e)
+                    foreach (var c in WmiGateway.Related(d, "MSFT_StorageReliabilityCounter"))
                     {
-                        if (firstError == null) firstError = e;
-                        continue;
-                    }
-                    foreach (var c in counters)
-                    {
-                        list.Add(new ReliabilityCounter
+                        r.Counters.Add(new ReliabilityCounter
                         {
-                            DeviceId = WmiGateway.Str(d, "DeviceId"),
+                            DeviceId = r.DeviceId,
                             Temperature = WmiGateway.IntOrNull(c, "Temperature"),
                             PowerOnHours = WmiGateway.LongOrNull(c, "PowerOnHours"),
                             Wear = WmiGateway.IntOrNull(c, "Wear")
                         });
                     }
                 }
-                // 行はあるが全部ゼロ／null＝実質「報告していない」。これも空として扱う
-                if (!list.Any(x => x.HasAnyValue))
-                {
-                    // どのディスクからも値が取れず、失敗したディスクがあれば、その理由（拒否／失敗）で返す
-                    if (firstError != null) throw firstError;
-                    return new List<ReliabilityCounter>();
-                }
-                return list.Where(x => x.HasAnyValue).ToList();
-            });
+                catch (Exception e) { r.Error = e; }
+                perDisk.Add(r);
+            }
+            return CombineReliability(perDisk, src);
+        }
+
+        internal sealed class DiskReliability
+        {
+            public string DeviceId;
+            public List<ReliabilityCounter> Counters = new List<ReliabilityCounter>();
+            /// <summary>このディスクの関連付けに失敗したときの例外。</summary>
+            public Exception Error;
+        }
+
+        /// <summary>
+        /// ディスクごとの結果を 1 つにまとめる（WMI に触れない純粋な部分。単体テストする）。
+        /// - 値のあるディスクがあれば Ok。失敗したディスクがあれば PartialReason に書く（1 台の失敗で他の値を捨てない。
+        ///   かつ、取れなかったディスクがあることも消さない＝設計原則 2）
+        /// - どのディスクからも値が取れず、失敗があれば、その例外で拒否／失敗に分ける
+        /// - 行はあるが全部ゼロ／null＝実質「報告していない」。これも空として扱う
+        /// </summary>
+        internal static ProbeResult<List<ReliabilityCounter>> CombineReliability(IList<DiskReliability> disks, string src)
+        {
+            var values = disks.SelectMany(d => d.Counters).Where(c => c.HasAnyValue).ToList();
+            var failed = disks.Where(d => d.Error != null).ToList();
+
+            if (values.Count > 0)
+            {
+                var ok = ProbeResult<List<ReliabilityCounter>>.Ok(values, src);
+                if (failed.Count > 0)
+                    ok.PartialReason = failed.Count + " 台のディスクは取得できませんでした（"
+                        + WmiGateway.Explain(failed[0].Error) + "）";
+                return ok;
+            }
+            if (failed.Count > 0)
+            {
+                var e = failed[0].Error;
+                return WmiGateway.IsAccessDenied(e)
+                    ? ProbeResult<List<ReliabilityCounter>>.Denied(src)
+                    : ProbeResult<List<ReliabilityCounter>>.Failed(WmiGateway.Explain(e), src);
+            }
+            return ProbeResult<List<ReliabilityCounter>>.Empty("情報源に値がありませんでした", src);
         }
 
         // ---- Windows 11 の 3 部品 ------------------------------------------

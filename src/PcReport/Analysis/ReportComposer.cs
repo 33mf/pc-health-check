@@ -628,7 +628,10 @@ namespace Microforge.PcReport.Analysis
                     if (parts.Count > 0) rows.Add(string.Join("、", parts));
                 }
                 if (rows.Count == 0) return null;
-                return new Item { Value = string.Join(" ／ ", rows), Status = Status.Info };
+                var item = new Item { Value = string.Join(" ／ ", rows), Status = Status.Info };
+                // 取れた分だけを出して「全部のディスク分」と読ませない（設計原則 2）
+                if (!string.IsNullOrEmpty(p.PartialReason)) item.Note = p.PartialReason;
+                return item;
             });
         }
 
