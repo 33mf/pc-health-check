@@ -12,7 +12,12 @@ namespace Microforge.PcReport.Saving
         ExeFolder,
         /// <summary>デスクトップ。</summary>
         Desktop,
-        /// <summary>%LOCALAPPDATA%\Microforge\PcReport\（Microforge のツールで共通に使う置き場所）。</summary>
+        /// <summary>ダウンロード フォルダ（既知フォルダ）。フォルダ保護の既定の対象になりにくい（SPEC §9-6）。</summary>
+        Downloads,
+        /// <summary>
+        /// %LOCALAPPDATA%\Microforge\PcReport\（Microforge のツールで共通に使う置き場所）。
+        /// パッケージ実行時は使わない（振り替えで利用者から見えなくなる）。
+        /// </summary>
         AppData,
         /// <summary>%TEMP%。</summary>
         Temp,
@@ -51,7 +56,7 @@ namespace Microforge.PcReport.Saving
     }
 
     /// <summary>
-    /// SPEC §9-2・§9-5：候補を順に試して、必ずどこかに保存する。
+    /// SPEC §9-2・§9-5・§9-6：候補を順に試して、必ずどこかに保存する。
     /// ウイルス対策ソフトのフォルダ保護（ランサムウェア対策）は、exe の横もデスクトップも止めうる
     /// （SPEC §7-1 ⑨：ウイルスバスターのフォルダシールドが HTML の書き込みをブロックした実例）。
     /// 書き込み処理は差し替えられる（単体テストで「拒否」を再現するため）。
@@ -71,25 +76,46 @@ namespace Microforge.PcReport.Saving
             {
                 case SaveLocation.ExeFolder: return "このアプリと同じ場所";
                 case SaveLocation.Desktop: return "デスクトップ";
+                case SaveLocation.Downloads: return "ダウンロード フォルダ";
                 case SaveLocation.AppData: return "このアプリの保存先";
                 case SaveLocation.Temp: return "一時フォルダ";
                 default: return "指定された場所";
             }
         }
 
-        /// <summary>既定の 4 段（exe と同じ場所 → デスクトップ → %LOCALAPPDATA%\Microforge\PcReport → %TEMP%）。</summary>
+        /// <summary>この PC・この起動のしかたでの候補（実行環境を調べて BuildCandidates に渡す）。</summary>
         public static IList<SaveCandidate> DefaultCandidates()
         {
             string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            return new[]
+            return BuildCandidates(
+                PackageContext.Detect(),
+                AppDomain.CurrentDomain.BaseDirectory,
+                Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),
+                PackageContext.DownloadsFolder(),
+                string.IsNullOrEmpty(localAppData) ? null : System.IO.Path.Combine(localAppData, "Microforge", "PcReport"),
+                SafeTempPath());
+        }
+
+        /// <summary>
+        /// SPEC §9-6：exe と同じ場所 → デスクトップ → ダウンロード → %LOCALAPPDATA%\Microforge\PcReport → %TEMP%。
+        /// - exe と同じ場所は、パッケージ実行時（インストール先が読み取り専用）でも候補に残す。書けなければ次へ進むだけ
+        /// - %LOCALAPPDATA% は、素の exe と判定できたときだけ使う。パッケージ実行時は振り替えで利用者から見えなくなり、
+        ///   判定できないときも同じおそれがあるので使わない
+        /// 取れなかった場所（null・空）は Save が飛ばす。
+        /// </summary>
+        public static IList<SaveCandidate> BuildCandidates(PackageState package, string exeDir, string desktop,
+            string downloads, string appData, string temp)
+        {
+            var list = new List<SaveCandidate>
             {
-                new SaveCandidate(SaveLocation.ExeFolder, AppDomain.CurrentDomain.BaseDirectory),
-                new SaveCandidate(SaveLocation.Desktop,
-                    Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)),
-                new SaveCandidate(SaveLocation.AppData,
-                    string.IsNullOrEmpty(localAppData) ? null : System.IO.Path.Combine(localAppData, "Microforge", "PcReport")),
-                new SaveCandidate(SaveLocation.Temp, SafeTempPath())
+                new SaveCandidate(SaveLocation.ExeFolder, exeDir),
+                new SaveCandidate(SaveLocation.Desktop, desktop),
+                new SaveCandidate(SaveLocation.Downloads, downloads)
             };
+            if (package == PackageState.NotPackaged)
+                list.Add(new SaveCandidate(SaveLocation.AppData, appData));
+            list.Add(new SaveCandidate(SaveLocation.Temp, temp));
+            return list;
         }
 
         /// <summary>

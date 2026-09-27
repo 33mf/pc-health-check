@@ -125,7 +125,8 @@ namespace Microforge.PcReport
         }
 
         /// <summary>
-        /// SPEC §9-2・§9-5：exe と同じ場所 → デスクトップ → %LOCALAPPDATA%\Microforge\PcReport → %TEMP% の順に試す。
+        /// SPEC §9-2・§9-5・§9-6：exe と同じ場所 → デスクトップ → ダウンロード →
+        /// （素の exe のときだけ）%LOCALAPPDATA%\Microforge\PcReport → %TEMP% の順に試す（ReportSaver.BuildCandidates）。
         /// --out が指定されていれば、そこだけを使う（検証で保存先を取り違えないため）。
         /// </summary>
         static IList<SaveCandidate> Candidates(string outDir)
