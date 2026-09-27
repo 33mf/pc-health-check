@@ -42,6 +42,8 @@ namespace Microforge.PcReport.Saving
                 if (rc == ErrorInsufficientBuffer || rc == 0) return PackageState.Packaged;
                 return PackageState.Unknown;
             }
+            // API が無い（Windows 7 等）なら本来パッケージではありえないが、対象外の OS なので、
+            // 「判定できないときは %LOCALAPPDATA% を使わない」側にそろえて Unknown にする（SPEC §9-6）
             catch (EntryPointNotFoundException) { return PackageState.Unknown; }
             catch (DllNotFoundException) { return PackageState.Unknown; }
         }

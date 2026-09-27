@@ -59,8 +59,11 @@ if ($missing.Count -gt 0) {
     throw ("identity\{0}.psd1 に Partner Center の値が転記されていません：{1}" -f $suffix, ($missing -join ', '))
 }
 [xml]$props = Get-Content (Join-Path $appRoot 'Directory.Build.props') -Raw -Encoding UTF8
-$productVersion = [version](@($props.Project.PropertyGroup.Version) | Where-Object { $_ } | Select-Object -First 1)
-if (-not $productVersion -or $productVersion.Revision -gt 0) { throw "Directory.Build.props の Version を読めません（3 桁で書く）: $productVersion" }
+$rawVersion = @($props.Project.PropertyGroup.Version) | Where-Object { $_ } | Select-Object -First 1
+$productVersion = $null
+if (-not [version]::TryParse([string]$rawVersion, [ref]$productVersion) -or $productVersion.Revision -gt 0) {
+    throw "Directory.Build.props の Version を読めません（1.2.3 のように数字 3 桁で書く。-rc などは付けない）: $rawVersion"
+}
 $version = '{0}.{1}.{2}.0' -f $productVersion.Major, $productVersion.Minor, [Math]::Max(0, $productVersion.Build)
 
 # ---- 1. 製品のビルド（製品コードは変えない） -----------------------------------

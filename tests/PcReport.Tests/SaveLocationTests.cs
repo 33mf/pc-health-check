@@ -98,7 +98,10 @@ namespace Microforge.PcReport.Tests
                 new[] { SaveLocation.ExeFolder, SaveLocation.Desktop, SaveLocation.Downloads, SaveLocation.AppData, SaveLocation.Temp },
                 c.Select(x => x.Location).ToArray());
             Assert.EndsWith(@"\Microforge\PcReport", c[3].Directory);
-            Assert.True(Directory.Exists(c[2].Directory), "ダウンロード フォルダが取れていない: " + c[2].Directory);
+            // ダウンロード フォルダは、取れなければ null（候補から外れる）。取れたなら絶対パス。
+            // 存在までは確かめない（プロファイルを作りたての環境などでは無いことがあり、それは製品の正しい動き）
+            Assert.True(c[2].Directory == null || Path.IsPathRooted(c[2].Directory),
+                "ダウンロード フォルダの値がおかしい: " + c[2].Directory);
         }
 
         // ---- 素の exe：退避の順 -------------------------------------------------

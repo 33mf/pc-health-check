@@ -12,5 +12,5 @@
     Name                 = '<<Partner Center: Package/Identity/Name>>'
     Publisher            = '<<Partner Center: Package/Identity/Publisher>>'
     PublisherDisplayName = '<<Partner Center: Package/Properties/PublisherDisplayName>>'
-    DisplayName          = 'PC 状態レポート'
+    DisplayName          = '<<Partner Center: 予約したアプリ名>>'
 }
