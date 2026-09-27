@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  PCR-002 MSIX 可否検証用のパッケージマニフェスト（Store 提出用ではない）。
-  - Identity / Publisher は検証用の仮の値。Publisher は New-DevCert.ps1 が作る自己署名証明書の
-    Subject と一字一句一致していなければ署名・インストールできない。
-  - Store 提出時は Partner Center が払い出す Identity Name / Publisher に差し替える。
-  - 製品の exe（src/PcReport）は一切変えずに、そのまま同梱する。
+  PC 状態レポートのパッケージマニフェスト（ひな形）。このままでは使えない。
+  Build-Msix.ps1 が $…$ の差し込み口を埋めてから MakeAppx に渡す。
+
+  $IDENTITY_NAME$ / $PUBLISHER$ / $PUBLISHER_DISPLAY_NAME$ / $DISPLAY_NAME$
+      identity\dev.psd1（sideload の検証用）か identity\store.psd1（Store 提出用）から入る。
+      ★ Store 提出用の値は Partner Center の「製品 ID」から identity\store.psd1 に転記する ★
+  $VERSION$
+      Directory.Build.props の Version に ".0" を付けたもの。4 桁目は Store が使うので常に 0。
+
+  製品の exe（src/PcReport）は一切変えずに、そのまま同梱する。
+  文言は specification/store/STORE_LISTING_ja.md の原案に合わせている。
 -->
 <Package
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
@@ -13,14 +19,15 @@
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="Microforge.PcReport.Dev"
-    Publisher="CN=Microforge PCR-002 Dev (self-signed)"
-    Version="1.0.0.0"
+    Name="$IDENTITY_NAME$"
+    Publisher="$PUBLISHER$"
+    Version="$VERSION$"
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>PC 状態レポート (検証版)</DisplayName>
-    <PublisherDisplayName>Microforge</PublisherDisplayName>
+    <DisplayName>$DISPLAY_NAME$</DisplayName>
+    <PublisherDisplayName>$PUBLISHER_DISPLAY_NAME$</PublisherDisplayName>
+    <Description>ダブルクリックするだけで、この PC の状態を 1 枚の HTML にまとめます。通信しません。人に送れる形で残せます。</Description>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -36,8 +43,8 @@
   <Applications>
     <Application Id="PcReport" Executable="PcReport.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="PC 状態レポート (検証版)"
-        Description="Windows の状態を調べて HTML 1 枚にまとめます"
+        DisplayName="$DISPLAY_NAME$"
+        Description="ダブルクリックするだけで、この PC の状態を 1 枚の HTML にまとめます。通信しません。"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png" />

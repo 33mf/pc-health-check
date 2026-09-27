@@ -23,8 +23,8 @@ $ErrorActionPreference = 'Stop'
 $here   = $PSScriptRoot
 $outDir = Join-Path $here 'out'
 $cerOut = Join-Path $outDir 'PcReport-dev.cer'
-[xml]$m = Get-Content (Join-Path $here 'AppxManifest.xml') -Raw -Encoding UTF8
-$subject = $m.Package.Identity.Publisher
+# sideload 用の Identity（identity\dev.psd1）の Publisher を Subject にする
+$subject = (Import-PowerShellDataFile (Join-Path $here 'identity\dev.psd1')).Publisher
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 

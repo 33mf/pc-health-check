@@ -7,7 +7,7 @@
     - CurrentUser\My の証明書（秘密鍵つき）を消す（管理者不要）
     - LocalMachine\TrustedPeople の証明書を消す（管理者が要る。昇格していなければ飛ばして案内を出す）
 
-    どれも Subject（AppxManifest.xml の Publisher）が一致するものだけを消す。
+    どれも Subject（identity\dev.psd1 の Publisher）が一致するものだけを消す。
     -Thumbprint を渡すと、その拇印のものだけに絞る。
 #>
 [CmdletBinding()]
@@ -15,10 +15,10 @@ param([string]$Thumbprint)
 
 $ErrorActionPreference = 'Stop'
 
-[xml]$m = Get-Content (Join-Path $PSScriptRoot 'AppxManifest.xml') -Raw -Encoding UTF8
-$subject = $m.Package.Identity.Publisher
-$pkgName = $m.Package.Identity.Name
-if (-not $subject -or -not $pkgName) { throw 'AppxManifest.xml から Publisher / Name を読めませんでした。何も消していません。' }
+$identity = Import-PowerShellDataFile (Join-Path $PSScriptRoot 'identity\dev.psd1')
+$subject = $identity.Publisher
+$pkgName = $identity.Name
+if (-not $subject -or -not $pkgName) { throw 'identity\dev.psd1 から Publisher / Name を読めませんでした。何も消していません。' }
 if ($Thumbprint) { $Thumbprint = ($Thumbprint -replace '\s', '').ToUpperInvariant() }
 
 function Select-Target($certs) {

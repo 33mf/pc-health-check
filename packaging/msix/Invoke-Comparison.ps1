@@ -44,8 +44,9 @@ foreach ($ad in $env:LOCALAPPDATA, $env:APPDATA) {
 $appRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 $exe     = Join-Path $appRoot 'src\PcReport\bin\Release\PcReport.exe'
 [xml]$m  = Get-Content (Join-Path $PSScriptRoot 'AppxManifest.xml') -Raw -Encoding UTF8
-$pkg     = Get-AppxPackage -Name $m.Package.Identity.Name
-if (-not $pkg) { throw ('パッケージがインストールされていません: {0}' -f $m.Package.Identity.Name) }
+$pkgName = (Import-PowerShellDataFile (Join-Path $PSScriptRoot 'identity\dev.psd1')).Name
+$pkg     = Get-AppxPackage -Name $pkgName
+if (-not $pkg) { throw ('パッケージがインストールされていません: {0}' -f $pkgName) }
 $appId   = $m.Package.Applications.Application.Id
 $pkgExe  = Join-Path $pkg.InstallLocation 'PcReport.exe'
 
