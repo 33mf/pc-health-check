@@ -2,7 +2,7 @@
 
 Windows の状態を調べて、**人に送れる HTML 1 枚**を作るポータブルツール。
 ダブルクリックすると、exe と同じ場所にレポートを保存して既定のブラウザで開く
-（書けなければデスクトップ → このアプリの保存先 → 一時フォルダの順に退避する）。
+（書けなければデスクトップ → ダウンロード → このアプリの保存先 → 一時フォルダの順に退避する）。
 
 - インストールしない／設定画面を持たない／**通信しない**
 - **管理者権限を要求しない**（`asInvoker`）。権限が要る項目は「取得できませんでした（理由）」と書く
@@ -55,23 +55,28 @@ dotnet test tests/PcReport.Tests/PcReport.Tests.csproj -c Release
 
 ファイル名は `pc-report_YYYY-MM-DD_HHMM.html`。
 
-### 保存先（SPEC §9-2・§9-5）
+### 保存先（SPEC §9-2・§9-5・§9-6）
 
 保存先を指定しない場合は、次の順に試して**必ずどこかに保存する**。
 ウイルス対策ソフトのフォルダ保護（ウイルスバスターの「フォルダシールド」などのランサムウェア対策）は、
 exe の横もデスクトップも止めることがあるため（SPEC §7-1 ⑨）。
 
-| 順 | 場所 | 利用者に見せる呼び名 |
-| :-: | :--- | :--- |
-| 1 | exe と同じ場所 | （知らせない。これまでどおり無言でブラウザを開く） |
-| 2 | デスクトップ | デスクトップ |
-| 3 | `%LOCALAPPDATA%\Microforge\PcReport\`（無ければ作る。Microforge のツールで共通に使う置き場所） | このアプリの保存先 |
-| 4 | `%TEMP%` | 一時フォルダ |
+| 順 | 場所 | 素の exe | MSIX / Store 版 | 利用者に見せる呼び名 |
+| :-: | :--- | :-: | :-: | :--- |
+| 1 | exe と同じ場所 | ○ | ○（インストール先は読み取り専用なので、実際は拒否されて次へ進む） | （知らせない。無言でブラウザを開く） |
+| 2 | デスクトップ | ○ | ○ | デスクトップ |
+| 3 | ダウンロード フォルダ（既知フォルダ `FOLDERID_Downloads`。利用者が場所を移していてもその場所） | ○ | ○ | ダウンロード フォルダ |
+| 4 | `%LOCALAPPDATA%\Microforge\PcReport\`（無ければ作る。Microforge のツールで共通に使う置き場所） | ○ | **×（使わない）** | このアプリの保存先 |
+| 5 | `%TEMP%` | ○ | ○ | 一時フォルダ |
 
+- **MSIX / Store 版で 4 を使わない理由**：パッケージのアプリが `%LOCALAPPDATA%` に書いたファイルは、パッケージ専用の場所に振り替えられ、
+  利用者から見えなくなる（PCR-002 で実測）。パッケージで動いているかは `GetCurrentPackageFullName` で判定し
+  （`src/PcReport/Saving/PackageContext.cs`）、**判定できないときも 4 を使わない**
 - 書き込みを拒否された（`UnauthorizedAccessException` / `IOException`）ときだけ次へ進む。それ以外の例外は退避せずに失敗にする
-- 2〜4 に退避したときだけ、ブラウザで開く前に「レポートは〈呼び名〉に保存しました。」を 1 回出す。
-  **フルパスは出さない**（ユーザー名が含まれる。設計原則 1）。レポート HTML の中にも保存先は書かない
-- 4 つとも失敗したら、フォルダ保護に止められた可能性と、次の一手（別のフォルダに移す／ウイルス対策ソフトで許可する）を出す
+- 1 以外に保存したときだけ、ブラウザで開く前に「レポートは〈呼び名〉に保存しました。」を 1 回出す。
+  **フルパスは出さない**（ユーザー名が含まれる。設計原則 1）。レポート HTML の中にも保存先は書かない。
+  ※ MSIX / Store 版は 1 に書けないので、**毎回**この通知が出る（ふつうはデスクトップ）
+- どこにも保存できなかったら、フォルダ保護に止められた可能性と、次の一手（別のフォルダに移す／ウイルス対策ソフトで許可する）を出す
 - `--out` を指定したときはその場所だけを使い、退避しない
 - コマンドプロンプト／PowerShell から引数付きで実行したとき（検証用。呼び出し元のコンソールにつながったとき）は
   通知を出さず、保存先のパスの次の行に `（退避：〈呼び名〉）` を書く。
@@ -99,7 +104,7 @@ powershell -ExecutionPolicy Bypass -File .\tools\Check-PcReport.ps1 -HtmlPath .\
 app/
 ├── src/PcReport/
 │   ├── Program.cs           起動・保存・退避したときの通知・ブラウザで開く
-│   ├── Saving/              保存先の 4 段退避（ReportSaver）
+│   ├── Saving/              保存先の退避（ReportSaver）とパッケージ実行の判定（PackageContext）
 │   ├── ReportBuilder.cs     収集層と判定層をつなぐ入口（now を外から受け取る）
 │   ├── Model/               Report / Item と、収集結果を包む ProbeResult、生値 DTO
 │   ├── Probes/              ★ 収集層：WMI・レジストリ・COM を叩いて生値を返すだけ
@@ -107,7 +112,7 @@ app/
 │   └── Rendering/           HTML 1 枚の組み立て（CSS 埋め込み・印刷 CSS 付き）
 ├── tests/PcReport.Tests/    単体テスト
 ├── tools/Check-PcReport.ps1 生成物の自動チェック
-└── packaging/msix/          MSIX（Store 版）の検証用。製品の exe をそのまま包む（PCR-002）
+└── packaging/msix/          MSIX（Store 版）。製品の exe をそのまま包む（PCR-002・PCR-004）
 ```
 
 ### 収集層と判定層を分けている理由
@@ -119,18 +124,26 @@ app/
 
 収集層に判定を書き足さないこと。書き足すと、その分岐はテストできなくなる。
 
-## MSIX（Store 版）の検証（PCR-002）
+## MSIX（Store 版）
 
-**製品の exe は変えずに**、ビルドした `PcReport.exe` をそのまま MSIX に包んで、
-自己署名証明書で開発機にだけ入れて試すための手順。**Store への提出用ではない**
-（Identity と Publisher は検証用の仮の値。結論は Cowork 宛ての report 側に書く）。
+**製品の exe は変えずに**、ビルドした `PcReport.exe` をそのまま MSIX に包む。
+作り分けは 2 通り：
+
+- **Dev**（`Build-Msix.ps1`）：自己署名証明書で開発機にだけ入れて試す（sideload）。Identity は `identity/dev.psd1` の仮の値
+- **Store**（`Build-Msix.ps1 -Target Store`）：Partner Center に上げる未署名の `out/PcReport-store.msix`（Microsoft が認定後に署名する）。
+  Identity は `identity/store.psd1`（**Partner Center の値を転記するまで作れない**）
 
 | ファイル | 役割 | 管理者 |
 | :--- | :--- | :-: |
-| `packaging/msix/AppxManifest.xml` | パッケージマニフェスト。capability は `runFullTrust` だけ | — |
+| `packaging/msix/AppxManifest.xml` | パッケージマニフェストの**ひな形**。`$IDENTITY_NAME$` などを `Build-Msix.ps1` が埋める。capability は `runFullTrust` だけ | — |
+| `packaging/msix/identity/dev.psd1` | sideload 用の Identity（仮の値。Publisher は自己署名証明書の Subject と一致させる） | — |
+| `packaging/msix/identity/store.psd1` | **Store 用の Identity。Partner Center の値をここに転記する**（`<<…>>` が残っていると Store 用は作れない） | — |
+| `packaging/msix/Assets/` | パッケージに入るアイコン（44×44・150×150・50×50）。**今は Code が作った仮のもの** | — |
+| `packaging/msix/store-listing/StoreLogo_300x300.png` | Partner Center の「ストア ロゴ」に上げるもの（パッケージには入らない）。仮のもの | — |
+| `packaging/msix/New-ProvisionalIcons.ps1` | 仮のアイコンを描き直す（確定版に差し替えたあとは使わない） | 不要 |
 | `packaging/msix/tools.proj` | MakeAppx / SignTool を NuGet（`Microsoft.Windows.SDK.BuildTools`）から取るためだけのもの。Windows SDK は入れない | — |
 | `packaging/msix/New-DevCert.ps1` | 自己署名証明書を作る／`-Trust` で「信頼されたユーザー」に入れる | `-Trust` のときだけ要る |
-| `packaging/msix/Build-Msix.ps1` | exe をビルド → `out/PcReport-dev.msix` を作る → 証明書があれば署名 | 不要 |
+| `packaging/msix/Build-Msix.ps1` | exe をビルド → マニフェストを埋める → `out/PcReport-dev.msix` / `out/PcReport-store.msix` を作る → Dev だけ証明書があれば署名 | 不要 |
 | `packaging/msix/Invoke-Comparison.ps1` | 同じ権限で exe 版 → MSIX 版を続けて実行し、比較表を作る | 比較したい権限で |
 | `packaging/msix/Compare-Reports.ps1` | HTML 2 枚の項目ごとの取得可否を並べる | 不要 |
 | `packaging/msix/Remove-DevCert.ps1` | 後片付け（アンインストール＋証明書の削除） | 「信頼されたユーザー」から消すときだけ要る |
@@ -153,7 +166,7 @@ powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1
 Add-AppxPackage -Path .\packaging\msix\out\PcReport-dev.msix
 
 # 4. スタートメニューの「PC 状態レポート (検証版)」から起動する
-#    （exe の場所＝WindowsApps には書けないので、デスクトップに保存される）
+#    （exe の場所＝WindowsApps には書けないので、デスクトップに保存され、「デスクトップに保存しました」が出る）
 
 # 5. exe 版と MSIX 版の比較（非昇格。昇格で比べるなら管理者の PowerShell で -Tag admin）
 powershell -ExecutionPolicy Bypass -File .\packaging\msix\Invoke-Comparison.ps1 -OutDir <結果の置き場所> -Tag user
@@ -168,6 +181,41 @@ powershell -ExecutionPolicy Bypass -File .\packaging\msix\Invoke-Comparison.ps1 
 - PowerShell 5.1 は BOM の無い XML を ANSI として読むので、スクリプトからマニフェストを読むときは `-Encoding UTF8` を付ける
 - XML のコメントの中にハイフン 2 つ（`--out` など）を書くと、マニフェストが壊れる
 
+### Store に出すとき（提出は編集長）
+
+1. Partner Center でアプリ名を予約する
+2. **「製品管理 → 製品 ID」の値を `packaging/msix/identity/store.psd1` に一字一句転記する**
+   （`Name` / `Publisher` / `PublisherDisplayName`。`DisplayName` は予約した名前）
+3. 版は `Directory.Build.props` の `Version` で決まる（`1.0.0` → パッケージは `1.0.0.0`。4 桁目は常に 0）
+4. アイコンを確定版にするなら、`packaging/msix/Assets/` と `packaging/msix/store-listing/` の PNG を
+   **同じ名前・同じ寸法**で上書きする
+5. Store 用を作る：
+
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1 -Target Store
+   ```
+
+   → `packaging/msix/out/PcReport-store.msix`（未署名）を Partner Center に上げる。`store-listing/StoreLogo_300x300.png` は「ストア ロゴ」に
+6. 上げる前に WACK をかける（下）
+
+### WACK（Windows App Certification Kit）
+
+Windows SDK のうち WACK だけを入れる（PCR-004 で gram17 に入れた。**管理者が要る**）：
+
+```powershell
+winget install --id Microsoft.WindowsSDK.10.0.26100 --exact --override "/features OptionId.WindowsSoftwareLogoToolkit /quiet /norestart /ceip off"
+```
+
+- 機能名は `OptionId.WindowsSoftwareLogoToolkit`（WACK の旧称）。`OptionId.WindowsAppCertificationKit` は、この版のインストーラーには無い
+- 外すときは「設定 → アプリ」から「Windows Software Development Kit - Windows 10.0.26100.…」をアンインストールする
+
+実行（**管理者の PowerShell で**。WACK がパッケージを入れ直して起動・終了まで試すので数分かかる）：
+
+```powershell
+& "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe" reset
+& "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe" test -appxpackagepath <.msix のフルパス> -reportoutputpath <結果の .xml>
+```
+
 ### 後片付け
 
 ```powershell
@@ -178,6 +226,6 @@ powershell -ExecutionPolicy Bypass -File .\packaging\msix\Remove-DevCert.ps1
 powershell -ExecutionPolicy Bypass -File .\packaging\msix\Remove-DevCert.ps1
 ```
 
-`Remove-DevCert.ps1` は、マニフェストの Publisher と Subject が一致する証明書だけを消す（`-Thumbprint` でさらに絞れる）。
+`Remove-DevCert.ps1` は、`identity/dev.psd1` の Publisher と Subject が一致する証明書だけを消す（`-Thumbprint` でさらに絞れる）。
 最後に残っているものを一覧にし、何か残っていれば終了コード 1 で終わる（1 回目の非管理者実行では
 「信頼されたユーザー」の証明書が残るので 1 になる。管理者で 2 回目を実行すれば 0 になる）。
