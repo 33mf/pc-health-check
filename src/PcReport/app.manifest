@@ -22,7 +22,12 @@
 
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
-      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
+      <!--
+        高 DPI：モニターごとの DPI に対応する（PerMonitorV2）。WACK の DPIAwarenessValidation の警告への対応（PCR-004）。
+        画面は通知の MessageBox だけなので、見た目は OS が DPI に合わせて描く。古い Windows 向けに dpiAware も残す
+      -->
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, PerMonitor</dpiAwareness>
     </windowsSettings>
   </application>
 </assembly>
