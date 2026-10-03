@@ -45,7 +45,7 @@ namespace Microforge.PcReport.Rendering
             sb.Append("<title>").Append(ReportBuilder.ProductName).Append(" ").Append(H(r.GeneratedAt.ToString("yyyy-MM-dd"))).Append("</title>");
             sb.Append("<style>").Append(Css).Append("</style></head><body><main>");
 
-            sb.Append("<header><div class=\"brand\">Microforge</div><h1>").Append(ReportBuilder.ProductName).Append("</h1>");
+            sb.Append("<header><div class=\"brand\">MicroForge</div><h1>").Append(ReportBuilder.ProductName).Append("</h1>");
             sb.Append("<p class=\"meta\">作成 ")
               .Append(H(Formatting.Date(r.GeneratedAt) + " " + r.GeneratedAt.ToString("HH:mm")))
               .Append("　／　")
@@ -107,7 +107,7 @@ namespace Microforge.PcReport.Rendering
               .Append("<p>このレポートはこの PC の中だけで作られ、どこにも送信されていません。")
               .Append("ユーザー名・PC 名・IP アドレス・シリアル番号は含みません。</p>")
               .Append("<p>ブラウザの「印刷」→「PDF に保存」で PDF にできます。</p>")
-              .Append("<p class=\"ver\">").Append(ReportBuilder.ProductName).Append(" v").Append(H(r.ToolVersion)).Append("　Microforge</p>")
+              .Append("<p class=\"ver\">").Append(ReportBuilder.ProductName).Append(" v").Append(H(r.ToolVersion)).Append("　MicroForge</p>")
               .Append("</footer>");
             sb.Append("</main></body></html>");
             return sb.ToString();

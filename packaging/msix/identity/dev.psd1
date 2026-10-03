@@ -4,7 +4,7 @@
 @{
     Name                 = 'Microforge.PcReport.Dev'
     Publisher            = 'CN=Microforge PCR-002 Dev (self-signed)'
-    PublisherDisplayName = 'Microforge'
+    PublisherDisplayName = 'MicroForge'
     DisplayName          = 'PC 健康診断 (検証版)'
     PackageFamilyName    = 'Microforge.PcReport.Dev_0h149wtcvgt50'
 }
