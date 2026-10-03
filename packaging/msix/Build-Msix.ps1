@@ -8,16 +8,23 @@
     3. AppxManifest.xml（ひな形）の差し込み口を埋める
        - Identity・表示名：identity\dev.psd1 か identity\store.psd1
        - Version：Directory.Build.props の Version に ".0" を付ける（Store は 4 桁目を 0 にする決まり）
-    4. out\layout-<target> に exe・マニフェスト・Assets\ のアイコンを並べ、MakeAppx でパッケージにする
-    5. Dev だけ：CurrentUser\My に Publisher と同じ Subject の証明書があれば署名する（New-DevCert.ps1 で作る）
-       Store は署名しない（Microsoft が認定後に署名し直す）
+    4. out\layout-<target>（-Sideload は layout-store-sideload）に exe・マニフェスト・Assets\ のアイコンを並べ、MakeAppx でパッケージにする
+    5. Dev と -Target Store -Sideload：CurrentUser\My に Publisher と同じ Subject の証明書があれば署名する
+       （New-DevCert.ps1 -Identity Dev|Store で作る）
+       -Sideload なしの Store は署名しない（Microsoft が認定後に署名し直す）
 
     Store は identity\store.psd1 に <<…>>（Partner Center の値の転記漏れ）が残っていると止まる。
+    identity\*.psd1 に PackageFamilyName があれば、Name と Publisher から計算した PFN と照合し、合わなければ止まる。
     タイムスタンプは付けない（署名時にも通信しない）。管理者権限は要らない。
 
 .PARAMETER Target
     Dev（既定）：out\PcReport-dev.msix（sideload 用。自己署名）
     Store      ：out\PcReport-store.msix（Partner Center に上げる。未署名）
+
+.PARAMETER Sideload
+    -Target Store と一緒に使う。Store の Identity のまま自己署名した out\PcReport-store-sideload.msix を作る。
+    開発機に入れて、PFN とスタートメニューの表示名を確かめるためだけのもの（★ Partner Center には上げない ★）。
+    署名には New-DevCert.ps1 -Identity Store で作った証明書を使う。
 
 .PARAMETER SkipBuild
     exe のビルドを飛ばす（直前にビルド済みのとき）。
@@ -25,14 +32,19 @@
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1
     powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1 -Target Store
+    powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1 -Target Store -Sideload
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('Dev', 'Store')] [string]$Target = 'Dev',
+    [switch]$Sideload,
     [switch]$SkipBuild
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ($Sideload -and $Target -ne 'Store') { throw '-Sideload は -Target Store と一緒に使います（Dev は元から自己署名します）。' }
+$sign     = ($Target -eq 'Dev') -or $Sideload
 
 $here     = $PSScriptRoot
 $appRoot  = Resolve-Path (Join-Path $here '..\..')
@@ -40,8 +52,9 @@ $csproj   = Join-Path $appRoot 'src\PcReport\PcReport.csproj'
 $binDir   = Join-Path $appRoot 'src\PcReport\bin\Release'
 $outDir   = Join-Path $here 'out'
 $suffix   = $Target.ToLowerInvariant()
-$layout   = Join-Path $outDir "layout-$suffix"
-$msix     = Join-Path $outDir "PcReport-$suffix.msix"
+$outName  = if ($Sideload) { "$suffix-sideload" } else { $suffix }
+$layout   = Join-Path $outDir "layout-$outName"
+$msix     = Join-Path $outDir "PcReport-$outName.msix"
 $template = Join-Path $here 'AppxManifest.xml'
 $assets   = Join-Path $here 'Assets'
 
@@ -57,6 +70,25 @@ $identity = Import-PowerShellDataFile (Join-Path $here "identity\$suffix.psd1")
 $missing = @($identity.GetEnumerator() | Where-Object { [string]$_.Value -match '<<.*>>' } | ForEach-Object Key)
 if ($missing.Count -gt 0) {
     throw ("identity\{0}.psd1 に Partner Center の値が転記されていません：{1}" -f $suffix, ($missing -join ', '))
+}
+
+# PFN = Name + "_" + 発行元 ID。発行元 ID は Publisher（UTF-16LE）の SHA-256 の先頭 8 バイトを
+# 0 を 1 ビット足した 65 ビットにして、5 ビットずつ Crockford の Base32（i l o u を除く小文字）で 13 文字にしたもの
+function Get-PackageFamilyName([string]$Name, [string]$Publisher) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { $hash = $sha.ComputeHash([System.Text.Encoding]::Unicode.GetBytes($Publisher)) } finally { $sha.Dispose() }
+    $bits = (-join ($hash[0..7] | ForEach-Object { [Convert]::ToString($_, 2).PadLeft(8, '0') })) + '0'
+    $alphabet = '0123456789abcdefghjkmnpqrstvwxyz'
+    $id = -join (0..12 | ForEach-Object { $alphabet[[Convert]::ToInt32($bits.Substring($_ * 5, 5), 2)] })
+    return "{0}_{1}" -f $Name, $id
+}
+$pfn = Get-PackageFamilyName $identity.Name $identity.Publisher
+# Store は照合を省略させない（行ごと消されると、Publisher の転記ミスが素通りするため）
+if ($Target -eq 'Store' -and -not $identity.PackageFamilyName) {
+    throw 'identity\store.psd1 に PackageFamilyName（Partner Center の Package Family Name）がありません。照合できないので作りません。'
+}
+if ($identity.PackageFamilyName -and $identity.PackageFamilyName -cne $pfn) {
+    throw ("identity\{0}.psd1 の Name / Publisher から計算した PFN（{1}）が PackageFamilyName（{2}）と一致しません。転記を見直してください。" -f $suffix, $pfn, $identity.PackageFamilyName)
 }
 [xml]$props = Get-Content (Join-Path $appRoot 'Directory.Build.props') -Raw -Encoding UTF8
 $rawVersion = @($props.Project.PropertyGroup.Version) | Where-Object { $_ } | Select-Object -First 1
@@ -125,9 +157,9 @@ foreach ($name in 'Square44x44Logo.png', 'Square150x150Logo.png', 'StoreLogo.png
 
 Invoke-Tool $makeappx @('pack', '/o', '/d', $layout, '/p', $msix)
 
-# ---- 5. 署名（Dev で、証明書があるときだけ） ----------------------------------
+# ---- 5. 署名（Dev と -Sideload で、証明書があるときだけ） -----------------------
 
-if ($Target -eq 'Dev') {
+if ($sign) {
     $cert = Get-ChildItem Cert:\CurrentUser\My -CodeSigningCert |
             Where-Object { $_.Subject -eq $identity.Publisher -and $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) } |
             Sort-Object NotAfter -Descending | Select-Object -First 1
@@ -137,7 +169,10 @@ if ($Target -eq 'Dev') {
     }
     else {
         Write-Host ("署名用の証明書が CurrentUser\My にありません（Subject: {0}）。未署名のまま置きます。" -f $identity.Publisher) -ForegroundColor Yellow
-        Write-Host '→ New-DevCert.ps1 を実行してから、もう一度このスクリプトを実行してください。' -ForegroundColor Yellow
+        Write-Host ("→ New-DevCert.ps1 -Identity {0} を実行してから、もう一度このスクリプトを実行してください。" -f $Target) -ForegroundColor Yellow
+    }
+    if ($Sideload) {
+        Write-Host '★ これは開発機で確かめるためだけのもの。Partner Center には上げない（上げるのは -Sideload なしで作る PcReport-store.msix）' -ForegroundColor Yellow
     }
 }
 else {
@@ -147,6 +182,7 @@ else {
 Write-Host ''
 Write-Host ("Target  : {0}" -f $Target)
 Write-Host ("Identity: {0} / {1}" -f $identity.Name, $identity.Publisher)
+Write-Host ("PFN     : {0}" -f $pfn)
 Write-Host ("Version : {0}" -f $version)
 Write-Host ("MSIX    : {0}" -f $msix)
 Write-Host ("exe     : SHA256 {0}" -f (Get-FileHash $exe -Algorithm SHA256).Hash)
