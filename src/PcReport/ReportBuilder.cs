@@ -19,6 +19,12 @@ namespace Microforge.PcReport
             return ReportComposer.Compose(snapshot, now, toolVersion ?? ToolVersion);
         }
 
+        /// <summary>
+        /// 利用者に見せる製品名。Store で予約したアプリ名と同じにする（Store で見た名前と、開いたレポートの名前が違うと迷うため）。
+        /// exe 名・名前空間・出力ファイル名は変えない（過去の検証キットと同一性を保つため）。
+        /// </summary>
+        public const string ProductName = "PC 健康診断";
+
         public static string ToolVersion
         {
             get

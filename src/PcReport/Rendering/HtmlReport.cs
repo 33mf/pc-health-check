@@ -42,10 +42,10 @@ namespace Microforge.PcReport.Rendering
             sb.Append("<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">");
             // 万一この HTML に外部参照が紛れ込んでも、ブラウザ側で読みに行かせない保険
             sb.Append("<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'\">");
-            sb.Append("<title>PC 状態レポート ").Append(H(r.GeneratedAt.ToString("yyyy-MM-dd"))).Append("</title>");
+            sb.Append("<title>").Append(ReportBuilder.ProductName).Append(" ").Append(H(r.GeneratedAt.ToString("yyyy-MM-dd"))).Append("</title>");
             sb.Append("<style>").Append(Css).Append("</style></head><body><main>");
 
-            sb.Append("<header><div class=\"brand\">Microforge</div><h1>PC 状態レポート</h1>");
+            sb.Append("<header><div class=\"brand\">Microforge</div><h1>").Append(ReportBuilder.ProductName).Append("</h1>");
             sb.Append("<p class=\"meta\">作成 ")
               .Append(H(Formatting.Date(r.GeneratedAt) + " " + r.GeneratedAt.ToString("HH:mm")))
               .Append("　／　")
@@ -107,7 +107,7 @@ namespace Microforge.PcReport.Rendering
               .Append("<p>このレポートはこの PC の中だけで作られ、どこにも送信されていません。")
               .Append("ユーザー名・PC 名・IP アドレス・シリアル番号は含みません。</p>")
               .Append("<p>ブラウザの「印刷」→「PDF に保存」で PDF にできます。</p>")
-              .Append("<p class=\"ver\">PC 状態レポート v").Append(H(r.ToolVersion)).Append("　Microforge</p>")
+              .Append("<p class=\"ver\">").Append(ReportBuilder.ProductName).Append(" v").Append(H(r.ToolVersion)).Append("　Microforge</p>")
               .Append("</footer>");
             sb.Append("</main></body></html>");
             return sb.ToString();

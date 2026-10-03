@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  PC 状態レポートのパッケージマニフェスト（ひな形）。このままでは使えない。
+  PC 健康診断のパッケージマニフェスト（ひな形）。このままでは使えない。
   Build-Msix.ps1 が $…$ の差し込み口を埋めてから MakeAppx に渡す。
 
   $IDENTITY_NAME$ / $PUBLISHER$ / $PUBLISHER_DISPLAY_NAME$ / $DISPLAY_NAME$
@@ -27,7 +27,7 @@
   <Properties>
     <DisplayName>$DISPLAY_NAME$</DisplayName>
     <PublisherDisplayName>$PUBLISHER_DISPLAY_NAME$</PublisherDisplayName>
-    <Description>ダブルクリックするだけで、この PC の状態を 1 枚の HTML にまとめます。通信しません。人に送れる形で残せます。</Description>
+    <Description>ダブルクリックするだけで、この PC の健康診断の結果を 1 枚の HTML にまとめます。通信しません。人に送れる形で残せます。</Description>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -44,7 +44,7 @@
     <Application Id="PcReport" Executable="PcReport.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="$DISPLAY_NAME$"
-        Description="ダブルクリックするだけで、この PC の状態を 1 枚の HTML にまとめます。通信しません。"
+        Description="ダブルクリックするだけで、この PC の健康診断の結果を 1 枚の HTML にまとめます。通信しません。人に送れる形で残せます。"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png" />

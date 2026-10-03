@@ -109,7 +109,7 @@ namespace Microforge.PcReport
             {
                 using (var owner = new Form
                 {
-                    Text = "PC 状態レポート",
+                    Text = ReportBuilder.ProductName,
                     TopMost = true,
                     ShowInTaskbar = true,
                     Opacity = 0,
@@ -118,7 +118,7 @@ namespace Microforge.PcReport
                 {
                     owner.Show();
                     owner.Activate();
-                    MessageBox.Show(owner, text, "PC 状態レポート", MessageBoxButtons.OK, icon);
+                    MessageBox.Show(owner, text, ReportBuilder.ProductName, MessageBoxButtons.OK, icon);
                 }
             }
             catch (Exception) { /* 通知を出せない環境。保存・終了コードには影響させない */ }

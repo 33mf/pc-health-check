@@ -5,7 +5,8 @@
     <Nullable>disable</Nullable>
     <RootNamespace>Microforge.PcReport</RootNamespace>
     <Company>Microforge</Company>
-    <Product>PC 状態レポート (Microforge)</Product>
+    <!-- 利用者に見せる名前（Store で予約したアプリ名）。ReportBuilder.ProductName と同じにする（テストで照合） -->
+    <Product>PC 健康診断</Product>
     <Copyright>Microforge</Copyright>
     <Version>1.0.0</Version>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
