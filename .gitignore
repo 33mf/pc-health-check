@@ -43,3 +43,6 @@ packaging/msix/out/
 *.p12
 *.snk
 TestResults/
+*.msixupload
+*.appxupload
+*.appxsym
