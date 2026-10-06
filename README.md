@@ -14,7 +14,7 @@
 レポートの見出し・タブの題・フッター、通知の題、exe のファイル情報（製品名とファイルの説明）、MSIX の表示名がこれになる。
 コードでは `ReportBuilder.ProductName` の 1 か所にまとめ、`Directory.Build.props` の `Product`・`AssemblyTitle` と `packaging/msix/identity/*.psd1` の `DisplayName` との一致をテストで確かめている。
 
-利用者に見せる発行元の綴りは **`MicroForge`**（Store の発行元表示名と同じ。SPEC §9-8、PCR-007）。
+利用者に見せる発行元の綴りは **`MicroForge`**（Store の発行元表示名と同じ。SPEC §9-7、PCR-007）。
 レポートのロゴ文字とフッター、exe の会社名と著作権、MSIX の発行元表示名がこれになる。
 
 **変えないもの**（識別子）：exe 名 `PcReport.exe`、名前空間 `Microforge.PcReport`、プロジェクト名、出力ファイル名 `pc-report_YYYY-MM-DD_HHMM.html`、

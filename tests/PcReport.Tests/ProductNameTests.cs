@@ -16,7 +16,7 @@ namespace Microforge.PcReport.Tests
     /// PCR-005：利用者に見せる名前を Store で予約したアプリ名「PC 健康診断」に揃える。
     /// レポート・通知・exe のファイル情報・MSIX の表示名が食い違うと、Store で見た名前と開いたものの名前が違って迷うため。
     /// 一方で exe 名と出力ファイル名は変えない（過去の検証キットと同一性を保つため）。
-    /// PCR-007：exe の「ファイルの説明」も製品名にし、利用者に見せる発行元の綴りを Store と同じ MicroForge に揃える（SPEC §9-7・§9-8）。
+    /// PCR-007：exe の「ファイルの説明」も製品名にし（SPEC §9-8）、利用者に見せる発行元の綴りを Store と同じ MicroForge に揃える（SPEC §9-7）。
     /// </summary>
     public class ProductNameTests
     {
@@ -121,7 +121,7 @@ namespace Microforge.PcReport.Tests
         [Fact]
         public void 識別子は旧い綴りのまま()
         {
-            // 綴りの統一に巻き込んで識別子を変えていないこと（SPEC §9-8 で「触ってはいけない」とされたもの）
+            // 綴りの統一に巻き込んで識別子を変えていないこと（SPEC §9-7 で「触ってはいけない」とされたもの）
             Assert.Equal("Microforge.PcReport", typeof(ReportBuilder).Namespace);
             Assert.Equal("Microforge.PcReport.Dev", ReadValue("dev.psd1", "Name"));
             Assert.Equal("CN=Microforge PCR-002 Dev (self-signed)", ReadValue("dev.psd1", "Publisher"));
