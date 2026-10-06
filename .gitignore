@@ -35,3 +35,11 @@ packaging/msix/out/
 *.pfx
 *.cer
 *.msix
+
+# 公開リポジトリの点検（PCR-006）で足したもの：パッケージの別形式・署名鍵・テスト結果
+*.appx
+*.appxbundle
+*.msixbundle
+*.p12
+*.snk
+TestResults/
