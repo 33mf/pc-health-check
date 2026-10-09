@@ -32,8 +32,7 @@ namespace Microforge.PcReport.Tests
             var html = RenderLiveReport();
 
             foreach (var secret in Identifiers())
-                Assert.False(Contains(html, secret.Value),
-                    secret.Key + "（" + secret.Value + "）が HTML に含まれている");
+                AssertAbsent(html, secret.Key, secret.Value);
         }
 
         [Fact]
@@ -42,11 +41,11 @@ namespace Microforge.PcReport.Tests
             var html = RenderLiveReport();
 
             foreach (var ip in LocalIpAddresses())
-                Assert.False(Contains(html, ip), "IP アドレス " + ip + " が HTML に含まれている");
+                AssertAbsent(html, "IP アドレス", ip);
 
             // MAC アドレスも同じ扱い
             foreach (var mac in MacAddresses())
-                Assert.False(Contains(html, mac), "MAC アドレス " + mac + " が HTML に含まれている");
+                AssertAbsent(html, "MAC アドレス", mac);
         }
 
         [Fact]
@@ -55,7 +54,7 @@ namespace Microforge.PcReport.Tests
             var html = RenderLiveReport();
 
             foreach (var serial in Serials())
-                Assert.False(Contains(html, serial), "シリアル番号 " + serial + " が HTML に含まれている");
+                AssertAbsent(html, "シリアル番号", serial);
         }
 
         [Fact]
@@ -65,7 +64,7 @@ namespace Microforge.PcReport.Tests
 
             var profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             if (!string.IsNullOrEmpty(profile))
-                Assert.False(Contains(html, profile), "ユーザープロファイルのパスが HTML に含まれている");
+                AssertAbsent(html, "ユーザープロファイルのパス", profile);
         }
 
         [Fact]
@@ -76,10 +75,16 @@ namespace Microforge.PcReport.Tests
 
         // ---- ここから下はテスト専用の取得（製品コードには存在しない）--------
 
-        static bool Contains(string html, string needle)
+        /// <summary>
+        /// 識別子が HTML に無いことを確かめる。落ちたときのメッセージには値そのものを入れない
+        /// （CI のログなどに出ても困らないように）。種類・文字数・HTML の中の位置だけを出す。
+        /// </summary>
+        static void AssertAbsent(string html, string kind, string needle)
         {
-            if (string.IsNullOrWhiteSpace(needle)) return false;
-            return html.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
+            if (string.IsNullOrWhiteSpace(needle)) return;
+            var at = html.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
+            Assert.False(at >= 0,
+                kind + "（" + needle.Length + " 文字）が HTML の " + at + " 文字目（全 " + html.Length + " 文字）に含まれている");
         }
 
         static Dictionary<string, string> Identifiers()
