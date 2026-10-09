@@ -32,8 +32,9 @@
   </Properties>
 
   <Dependencies>
-    <!-- 17763 = Windows 10 1809。.NET Framework 4.8 は Windows に同梱なので依存パッケージは無い -->
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26100.0" />
+    <!-- 18362 = Windows 10 1903。.NET Framework 4.8 が同梱されたのはこの版から（1809 は 4.7.2）。MinVersion は OS のビルドしか見ないので、
+         4.8 の無い 1809 で「入れられるのに起動しない」を避けるため 1903 を下限にする（SPEC §9-9）。依存パッケージは無い -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.18362.0" MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 
   <Resources>
