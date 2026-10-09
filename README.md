@@ -69,7 +69,7 @@ dotnet test tests/PcReport.Tests/PcReport.Tests.csproj -c Release
 **Windows 上でしか通らない。** WMI・レジストリ・Windows Update Agent を叩くテストが
 含まれるため、Linux のコンテナで走らせても検証にはならない。
 
-通信しないことについて、テストで確かめているのは次の 2 つ：製品のソースに型名 `HttpClient`・`WebClient`・`WebRequest`・`Socket` が現れず、`System.Net.Http`・`Sockets`・`Mail`・`NetworkInformation` を `using` していないこと。代表的な状態のデータから作った HTML に、外部 URL と外部を読み込む要素が無いこと。ソースの文字列を調べるテストなので、ほかの型や完全修飾での記述、COM・P/Invoke・別プロセスを経由した通信までは検出できない。
+通信しないことについて、テストで確かめているのは次の 2 つ：製品のソースに型名 `HttpClient`・`WebClient`・`WebRequest`・`Socket` が現れず、`System.Net.Http`・`Sockets`・`Mail`・`NetworkInformation` を `using` していないこと。代表的な状態のデータから作った HTML に、代表的な外部 URL（`http://`・`https://`）と、外部を読み込む要素（`<script`・`<iframe`・`<link`・`<img`・`url(`）が無いこと。ソースの文字列を調べるテストなので、ほかの型や完全修飾での記述、COM・P/Invoke・別プロセスを経由した通信までは検出できない。
 
 ## 実行
 

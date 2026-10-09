@@ -11,7 +11,7 @@ namespace Microforge.PcReport.Tests
     /// <summary>
     /// PCR-003・PCR-004：保存先の退避（SPEC §9-2・§9-5・§9-6）。
     /// 素の exe は 5 段、パッケージ実行（MSIX / Store 版）と判定できないときは %LOCALAPPDATA% を外した 4 段。
-    /// ウイルス対策ソフトのフォルダ保護に止められても、必ずどこかに保存する。
+    /// ウイルス対策ソフトのフォルダ保護に止められたら次の候補へ退避し、書けた場所に保存する（どこにも書けなければ ReportSaveException）。
     /// 書き込み処理を差し替えて「拒否」を再現する（実機のフォルダ保護は再現できないため）。
     /// </summary>
     public class SaveLocationTests
