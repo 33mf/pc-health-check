@@ -32,4 +32,4 @@ lang: ja
 ## リンク
 
 - [プライバシーポリシー](privacy.html)
-- [ソースコード（GitHub）](https://github.com/33mf/pc-health-check)
+- [ソースコード（GitHub）](https://github.com/aokumi-apps/pc-health-check)

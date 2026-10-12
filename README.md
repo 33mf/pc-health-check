@@ -1,6 +1,6 @@
 # PC 健康診断（PcReport）
 
-提供：Aokumi ／ ライセンス：[MIT](LICENSE) ／ [プライバシーポリシー](https://33mf.github.io/pc-health-check/privacy.html)
+提供：Aokumi ／ ライセンス：[MIT](LICENSE) ／ [プライバシーポリシー](https://pc.aokumi.com/privacy.html)
 
 ダブルクリックするだけで、この PC の健康診断の結果を**人に送れる HTML 1 枚**にまとめるポータブルツール（Windows 10 1903 以降 / 11）。
 Windows の版と更新、ウイルス対策、CPU・メモリ・ディスク、起動ドライブが SSD か HDD か、ディスクの健康状態、

@@ -1,0 +1,5 @@
+# GitHub Pages（独自ドメイン pc.aokumi.com）の設定。
+# url を置かないと、canonical と og:url が http:// で出る。
+# theme は今まで使われていた既定のテーマを、そのまま明示しただけ（見た目を変えない）。
+url: https://pc.aokumi.com
+theme: jekyll-theme-primer
