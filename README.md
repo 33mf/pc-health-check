@@ -1,6 +1,6 @@
 # PC 健康診断（PcReport）
 
-提供：MicroForge ／ ライセンス：[MIT](LICENSE) ／ [プライバシーポリシー](https://33mf.github.io/pc-health-check/privacy.html)
+提供：Aokumi ／ ライセンス：[MIT](LICENSE) ／ [プライバシーポリシー](https://33mf.github.io/pc-health-check/privacy.html)
 
 ダブルクリックするだけで、この PC の健康診断の結果を**人に送れる HTML 1 枚**にまとめるポータブルツール（Windows 10 1903 以降 / 11）。
 Windows の版と更新、ウイルス対策、CPU・メモリ・ディスク、起動ドライブが SSD か HDD か、ディスクの健康状態、
@@ -32,12 +32,16 @@ Windows 11 の要件のうち TPM とセキュア ブートを調べる（CPU �
 レポートの見出し・タブの題・フッター、通知の題、exe のファイル情報（製品名とファイルの説明）、MSIX の表示名がこれになる。
 コードでは `ReportBuilder.ProductName` の 1 か所にまとめ、`Directory.Build.props` の `Product`・`AssemblyTitle` と `packaging/msix/identity/*.psd1` の `DisplayName` との一致をテストで確かめている。
 
-利用者に見せる発行元の綴りは **`MicroForge`**（Store の発行元表示名と同じ。SPEC §9-7、PCR-007）。
-レポートのロゴ文字とフッター、exe の会社名と著作権、MSIX の発行元表示名がこれになる。
+利用者に見せるブランドは **`Aokumi`**（SPEC §9-10、PCR-008）。
+レポートのロゴ文字とフッター、exe の会社名と著作権、LICENSE の著作権者がこれになる。
+MSIX の発行元表示名（`PublisherDisplayName`）は Store アカウント側の発行元表示名と一致させる必要があり、
+アカウント側を変えられるかの確認が済むまで旧ブランドのまま据え置いている（`packaging/msix/identity/*.psd1`）。
+Store の Identity（`MicroForge.PC` と PFN）も識別子なので変えない。
 
 **変えないもの**（識別子）：exe 名 `PcReport.exe`、名前空間 `Microforge.PcReport`、プロジェクト名、出力ファイル名 `pc-report_YYYY-MM-DD_HHMM.html`、
 保存先のフォルダ `%LOCALAPPDATA%\Microforge\PcReport`、検証版の Identity `Microforge.PcReport.Dev`（過去の検証キットと同一性を保つため）。
 識別子として旧い綴りを許す場所は `ProductNameTests` の除外リストに明示してあり、それ以外に `Microforge` が出たらテストが落ちる。
+旧ブランド `MicroForge` も同じで、Store の Identity（`MicroForge.PC` と PFN）と `PublisherDisplayName` 以外に出たらテストが落ちる（LICENSE と `docs/` も走査する）。
 
 ## 動作環境
 
@@ -99,7 +103,7 @@ exe の横もデスクトップも止めることがあるため（SPEC §7-1 �
 | 1 | exe と同じ場所 | ○ | ○（インストール先は読み取り専用なので、実際は拒否されて次へ進む） | （知らせない。無言でブラウザを開く） |
 | 2 | デスクトップ | ○ | ○ | デスクトップ |
 | 3 | ダウンロード フォルダ（既知フォルダ `FOLDERID_Downloads`。利用者が場所を移していてもその場所） | ○ | ○ | ダウンロード フォルダ |
-| 4 | `%LOCALAPPDATA%\Microforge\PcReport\`（無ければ作る。MicroForge のツールで共通に使う置き場所。フォルダ名は識別子なので綴りは据え置き） | ○ | **×（使わない）** | このアプリの保存先 |
+| 4 | `%LOCALAPPDATA%\Microforge\PcReport\`（無ければ作る。Aokumi のツールで共通に使う置き場所。フォルダ名は識別子なので旧い綴りのまま据え置き） | ○ | **×（使わない）** | このアプリの保存先 |
 | 5 | `%TEMP%` | ○ | ○ | 一時フォルダ |
 
 - **MSIX / Store 版で 4 を使わない理由**：パッケージのアプリが `%LOCALAPPDATA%` に書いたファイルは、パッケージ専用の場所に振り替えられ、

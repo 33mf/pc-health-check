@@ -17,13 +17,16 @@ namespace Microforge.PcReport.Tests
     /// レポート・通知・exe のファイル情報・MSIX の表示名が食い違うと、Store で見た名前と開いたものの名前が違って迷うため。
     /// 一方で exe 名と出力ファイル名は変えない（過去の検証キットと同一性を保つため）。
     /// PCR-007：exe の「ファイルの説明」も製品名にし（SPEC §9-8）、利用者に見せる発行元の綴りを Store と同じ MicroForge に揃える（SPEC §9-7）。
+    /// PCR-008：利用者に見せるブランドを Aokumi に改称する（SPEC §9-10）。Store の Identity と発行元表示名（PublisherDisplayName）は据え置く。
     /// </summary>
     public class ProductNameTests
     {
         const string StoreName = "PC 健康診断";
         const string OldName = "PC 状態レポート";
-        const string Brand = "MicroForge";
+        const string Brand = "Aokumi";
         const string OldBrand = "Microforge";
+        /// <summary>PCR-007 で揃えた綴り。PCR-008 で旧ブランドになった。Store の Identity と発行元表示名にだけ残す。</summary>
+        const string PreviousBrand = "MicroForge";
 
         /// <summary>
         /// 旧い綴りのまま残してよい識別子（変えると名前空間・保存先・検証版の Identity が変わる）。ここに無いものは表示文字列とみなす。
@@ -39,6 +42,23 @@ namespace Microforge.PcReport.Tests
             @"\\Microforge\\PcReport\b",                                 // %LOCALAPPDATA%\Microforge\PcReport（コメント中の保存先パス）
             @"""Microforge"",\s*""PcReport""",                           // 保存先パスの組み立て（Path.Combine）
         };
+
+        /// <summary>
+        /// 旧ブランド MicroForge のまま残してよい場所（PCR-008）。ここに無いものは表示文字列とみなす。
+        /// - Store の Identity Name と PFN（識別子。変えるとアプリ名の予約を取り直すことになる）
+        /// - identity\*.psd1 の PublisherDisplayName（Store アカウント側の発行元表示名と一致させる値。確認が済むまで据え置き）
+        /// </summary>
+        const string StoreIdentityPattern = @"\bMicroForge\.PC(_[0-9a-z]{13})?\b";                 // どのファイルでも許す
+        const string PublisherDisplayNamePattern = @"^\s*PublisherDisplayName\s*=\s*'MicroForge'\s*$"; // identity\*.psd1 でだけ許す
+
+        static string WithoutAllowedPreviousBrand(string root, string file, string line)
+        {
+            line = Regex.Replace(line, StoreIdentityPattern, "");
+            var rel = file.Substring(root.Length + 1).Replace('\\', '/');
+            if (rel.StartsWith("packaging/msix/identity/", StringComparison.Ordinal) && rel.EndsWith(".psd1", StringComparison.Ordinal))
+                line = Regex.Replace(line, PublisherDisplayNamePattern, "");
+            return line;
+        }
 
         [Fact]
         public void 製品名はStoreで予約したアプリ名()
@@ -79,7 +99,7 @@ namespace Microforge.PcReport.Tests
         }
 
         [Fact]
-        public void exeの会社名と著作権の綴りがStoreの発行元と同じ()
+        public void exeの会社名と著作権がブランド名()
         {
             var asm = typeof(ReportBuilder).Assembly;
             Assert.Equal(Brand, asm.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company);
@@ -87,20 +107,39 @@ namespace Microforge.PcReport.Tests
         }
 
         [Fact]
-        public void レポートのロゴ文字とフッターの綴りがStoreの発行元と同じ()
+        public void レポートのロゴ文字とフッターがブランド名()
         {
             var html = HtmlReport.Render(ReportComposer.Compose(Fixtures.Healthy(), Fixtures.Now, "1.0.0"));
 
             Assert.Contains("<div class=\"brand\">" + Brand + "</div>", html);
             Assert.Contains("<p class=\"ver\">" + StoreName + " v1.0.0　" + Brand + "</p>", html);
             Assert.DoesNotContain(OldBrand, html);
+            Assert.DoesNotContain(PreviousBrand, html);
         }
 
         [Fact]
-        public void Store用と検証版のIdentityの発行元表示名がMicroForge()
+        public void Store用と検証版のIdentityの発行元表示名は据え置きのMicroForge()
         {
-            Assert.Equal(Brand, ReadValue("store.psd1", "PublisherDisplayName"));
-            Assert.Equal(Brand, ReadValue("dev.psd1", "PublisherDisplayName"));
+            // PCR-008：Store アカウント側の発行元表示名と一致していないと提出が通らない。確認が済むまで変えない
+            Assert.Equal(PreviousBrand, ReadValue("store.psd1", "PublisherDisplayName"));
+            Assert.Equal(PreviousBrand, ReadValue("dev.psd1", "PublisherDisplayName"));
+        }
+
+        [Fact]
+        public void 利用者に見せる文字列に旧ブランドが残っていない()
+        {
+            // PCR-008：MicroForge は Store の Identity と発行元表示名にだけ残す。公開ページと LICENSE も走査する
+            var root = Fixtures.RepoRoot();
+            var hits = SourceFiles(root)
+                .Concat(new[] { "Directory.Build.props", "LICENSE" }.Select(f => Path.Combine(root, f)))
+                .Concat(Directory.EnumerateFiles(Path.Combine(root, "docs"), "*.md", SearchOption.AllDirectories))
+                .SelectMany(f => File.ReadAllLines(f).Select((line, n) => new { f, n, line }))
+                .Where(x => WithoutAllowedPreviousBrand(root, x.f, x.line)
+                              .IndexOf(PreviousBrand, StringComparison.Ordinal) >= 0)
+                .Select(x => x.f.Substring(root.Length + 1) + ":" + (x.n + 1) + "  " + x.line.Trim())
+                .ToList();
+
+            Assert.True(hits.Count == 0, "Store の Identity と発行元表示名以外に旧ブランドが残っている：\n" + string.Join("\n", hits));
         }
 
         [Fact]

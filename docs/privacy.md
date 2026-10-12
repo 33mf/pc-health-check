@@ -5,7 +5,7 @@ lang: ja
 
 # プライバシーポリシー — PC 健康診断（PcReport）
 
-最終更新：2026-10-09 ／ 提供：MicroForge
+最終更新：2026-10-12 ／ 提供：Aokumi
 
 ## 1. 要点
 
@@ -56,7 +56,7 @@ Microsoft Store 版は、アプリ専用のフォルダを使いません（こ�
 
 ## 9. 問い合わせ
 
-ご質問・ご指摘は microforge@outlook.com までお願いします。
+ご質問・ご指摘は 33@aokumi.com までお願いします。
 
 ---
 

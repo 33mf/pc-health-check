@@ -15,7 +15,7 @@ namespace Microforge.PcReport.Saving
         /// <summary>ダウンロード フォルダ（既知フォルダ）。フォルダ保護の既定の対象になりにくい（SPEC §9-6）。</summary>
         Downloads,
         /// <summary>
-        /// %LOCALAPPDATA%\Microforge\PcReport\（MicroForge のツールで共通に使う置き場所。フォルダ名は識別子なので綴りは据え置き）。
+        /// %LOCALAPPDATA%\Microforge\PcReport\（Aokumi のツールで共通に使う置き場所。フォルダ名は識別子なので旧い綴りのまま据え置き）。
         /// パッケージ実行時は使わない（振り替えで利用者から見えなくなる）。
         /// </summary>
         AppData,

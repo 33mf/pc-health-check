@@ -3,15 +3,15 @@
     <TargetFramework>net48</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <!-- 名前空間は識別子なので綴りは据え置き（SPEC §9-7）。利用者に見せる綴りは MicroForge -->
+    <!-- 名前空間は識別子なので旧い綴りのまま据え置き（SPEC §9-7・§9-10）。利用者に見せるブランドは Aokumi -->
     <RootNamespace>Microforge.PcReport</RootNamespace>
-    <!-- 利用者に見せる発行元の綴り（Store の PublisherDisplayName と同じ。SPEC §9-7） -->
-    <Company>MicroForge</Company>
+    <!-- 利用者に見せるブランド（SPEC §9-10）。Store の PublisherDisplayName は Partner Center の確認待ちで、まだ旧ブランドのまま -->
+    <Company>Aokumi</Company>
     <!-- 利用者に見せる名前（Store で予約したアプリ名）。ReportBuilder.ProductName と同じにする（テストで照合） -->
     <Product>PC 健康診断</Product>
     <!-- exe の「ファイルの説明」（タスク マネージャーとプロパティに出る）。製品名と同じにする（SPEC §9-8） -->
     <AssemblyTitle>PC 健康診断</AssemblyTitle>
-    <Copyright>MicroForge</Copyright>
+    <Copyright>Aokumi</Copyright>
     <Version>1.0.0</Version>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
