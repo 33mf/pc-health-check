@@ -46,14 +46,27 @@ jobs:
         with:
           dotnet-version: '8.0.425'
 
+      # ランナーには新しい SDK（9.x・10.x）も入っていて、何もしないとそちらが使われる。CI の中でだけ 8.0.425 に固定する
+      # （リポジトリに global.json は置かない。README の「.NET SDK 8.0 以降」で手元はビルドできるようにしておくため）
+      - name: Pin .NET SDK
+        run: |
+          dotnet new globaljson --sdk-version 8.0.425 --roll-forward disable --force
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet --version
+
+      # テストのプロジェクトをビルドすると、参照している製品の exe も同じ Release でビルドされる。
+      # ビルドはこの 1 回だけにして（下の test は --no-build）、テストした exe と取り出す exe を同じものにする
       - name: Build (Release)
-        run: dotnet build src/PcReport/PcReport.csproj -c Release -nologo
+        run: |
+          dotnet build tests/PcReport.Tests/PcReport.Tests.csproj -c Release -nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host ("PcReport.exe SHA256: {0}" -f (Get-FileHash src/PcReport/bin/Release/PcReport.exe -Algorithm SHA256).Hash)
 
       # ランナーは仮想マシンで、TPM・SMART・物理ディスクが実機と違う。落ちたテストは消さず、skip もしない
       - name: Test
         run: |
           [Console]::OutputEncoding = [Text.Encoding]::UTF8
-          dotnet test tests/PcReport.Tests/PcReport.Tests.csproj -c Release -nologo --logger "console;verbosity=normal"
+          dotnet test tests/PcReport.Tests/PcReport.Tests.csproj -c Release -nologo --no-build --logger "console;verbosity=normal"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       # ---- exe を取り出す（ここまでが「exe を作る」） ----------------------------
@@ -73,9 +86,10 @@ jobs:
           Write-Host ("SHA256         : {0}" -f (Get-FileHash $exe -Algorithm SHA256).Hash)
 
       # SIGNPATH: ここで exe を署名する（承認後の PCR-0xx で組み込む。いまは何もしない）
-      #   想定：$env:STAGE の未署名 exe を upload-artifact で上げる
+      #   想定：$env:STAGE の未署名 exe を upload-artifact で上げる（フォルダごとではなく PcReport.exe だけ。.config は署名しない）
       #         → signpath/github-action-submit-signing-request で署名を依頼する
       #         → 署名済みの exe を $env:STAGE に置き直す（下の -ExePath がそれを詰める）
+      #   そのとき足す権限（トークンの範囲）は SignPath の文書で確かめ、署名するジョブにだけ、PR の実行では付けない
       #   参考：https://docs.signpath.io/trusted-build-systems/github
 
       # ---- MSIX に詰める（exe はビルドし直さず、上で取り出したものをそのまま使う） ----
