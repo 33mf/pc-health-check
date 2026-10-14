@@ -64,6 +64,12 @@ dotnet build src/PcReport/PcReport.csproj -c Release
 
 出力：`src/PcReport/bin/Release/PcReport.exe`
 
+### CI（GitHub Actions）
+
+`.github/workflows/build.yml` が、`main` への push・PR・`v*` のタグでビルド → テスト → Store 向け MSIX まで作る（Windows のランナー）。
+成果物は `PcReport.exe`・`PcReport-store.msix`・`SHA256SUMS.txt` の 3 つ。CI では何にも署名しない。
+exe の取り出しと MSIX の梱包は別のステップにしてあり、後でその間に exe の署名を入れる（`Build-Msix.ps1 -ExePath` が、渡された exe をビルドし直さずに詰める）。
+
 ## テスト
 
 ```powershell
@@ -149,6 +155,7 @@ app/
 │   └── Rendering/           HTML 1 枚の組み立て（CSS 埋め込み・印刷 CSS 付き）
 ├── tests/PcReport.Tests/    単体テスト
 ├── tools/Check-PcReport.ps1 生成物の自動チェック
+├── .github/workflows/       CI（ビルド・テスト・Store 向け MSIX。PCR-010）
 └── packaging/msix/          MSIX（Store 版）。製品の exe をそのまま包む（PCR-002・PCR-004）
 ```
 
@@ -182,7 +189,7 @@ app/
 | `packaging/msix/New-ProvisionalIcons.ps1` | 仮のアイコンを描き直す（確定版に差し替えたあとは使わない） | 不要 |
 | `packaging/msix/tools.proj` | MakeAppx / SignTool を NuGet（`Microsoft.Windows.SDK.BuildTools`）から取るためだけのもの。Windows SDK は入れない | — |
 | `packaging/msix/New-DevCert.ps1` | 自己署名証明書を作る／`-Trust` で「信頼されたユーザー」に入れる。`-Identity Store` で Store の Publisher の証明書を作る | `-Trust` のときだけ要る |
-| `packaging/msix/Build-Msix.ps1` | exe をビルド → マニフェストを埋める → `out/PcReport-dev.msix` / `out/PcReport-store.msix` を作る → Dev と `-Sideload` だけ証明書があれば署名。`identity/*.psd1` の `PackageFamilyName` と計算した PFN が合わなければ止まる | 不要 |
+| `packaging/msix/Build-Msix.ps1` | exe をビルド → マニフェストを埋める → `out/PcReport-dev.msix` / `out/PcReport-store.msix` を作る → Dev と `-Sideload` だけ証明書があれば署名。`identity/*.psd1` の `PackageFamilyName` と計算した PFN が合わなければ止まる。`-ExePath` を付けるとビルドせず、渡した exe をそのまま詰める（CI 用） | 不要 |
 | `packaging/msix/Invoke-Comparison.ps1` | 同じ権限で exe 版 → MSIX 版を続けて実行し、比較表を作る | 比較したい権限で |
 | `packaging/msix/Compare-Reports.ps1` | HTML 2 枚の項目ごとの取得可否を並べる | 不要 |
 | `packaging/msix/Remove-DevCert.ps1` | 後片付け（アンインストール＋証明書の削除）。`-Identity Store` で Store の Identity のまま入れたものを消す（Store から入れた本物は消さない） | 「信頼されたユーザー」から消すときだけ要る |

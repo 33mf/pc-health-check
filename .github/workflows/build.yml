@@ -1,0 +1,127 @@
+# CI でビルドする（PCR-010）。exe と Store 向け MSIX を commit と 1 対 1 で作る。
+#
+# 手順：checkout → ビルド（Release）→ テスト → exe を取り出す → ［署名の差し込み口］→ Store 向け MSIX → 成果物
+# 成果物：PcReport.exe / PcReport-store.msix / SHA256SUMS.txt
+#
+# ここでは何にも署名しない。secrets も使わない。
+# 署名は「exe を作った後、MSIX に詰める前」にしか入れられない（詰めた後では中の exe に署名が乗らない）。
+# そのため exe の取り出しと MSIX の梱包を別のステップに分け、間を空けてある（SIGNPATH の目印）。
+
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+# 既定は読み取りだけ。成果物のアップロードは GITHUB_TOKEN の権限を使わないので、足すものは無い
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # OS の版を固定する（windows-latest は予告なく変わる）
+    runs-on: windows-2025
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      DOTNET_NOLOGO: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      STAGE: ${{ github.workspace }}\stage
+      DIST: ${{ github.workspace }}\dist
+
+    steps:
+      # Action は commit の SHA で固定する（タグは付け替えられるため）。コメントは固定した時点の版
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # SDK は手元（gram17）と同じ版にする。exe の SHA256 を手元と比べるため
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '8.0.425'
+
+      - name: Build (Release)
+        run: dotnet build src/PcReport/PcReport.csproj -c Release -nologo
+
+      # ランナーは仮想マシンで、TPM・SMART・物理ディスクが実機と違う。落ちたテストは消さず、skip もしない
+      - name: Test
+        run: |
+          [Console]::OutputEncoding = [Text.Encoding]::UTF8
+          dotnet test tests/PcReport.Tests/PcReport.Tests.csproj -c Release -nologo --logger "console;verbosity=normal"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # ---- exe を取り出す（ここまでが「exe を作る」） ----------------------------
+      - name: Stage exe
+        run: |
+          [Console]::OutputEncoding = [Text.Encoding]::UTF8
+          New-Item -ItemType Directory -Force -Path $env:STAGE | Out-Null
+          Copy-Item src/PcReport/bin/Release/PcReport.exe $env:STAGE
+          Copy-Item src/PcReport/bin/Release/PcReport.exe.config $env:STAGE
+          $exe = Join-Path $env:STAGE 'PcReport.exe'
+          $v = (Get-Item $exe).VersionInfo
+          Write-Host ("ProductName    : {0}" -f $v.ProductName)
+          Write-Host ("FileDescription: {0}" -f $v.FileDescription)
+          Write-Host ("CompanyName    : {0}" -f $v.CompanyName)
+          Write-Host ("FileVersion    : {0}" -f $v.FileVersion)
+          Write-Host ("ProductVersion : {0}" -f $v.ProductVersion)
+          Write-Host ("SHA256         : {0}" -f (Get-FileHash $exe -Algorithm SHA256).Hash)
+
+      # SIGNPATH: ここで exe を署名する（承認後の PCR-0xx で組み込む。いまは何もしない）
+      #   想定：$env:STAGE の未署名 exe を upload-artifact で上げる
+      #         → signpath/github-action-submit-signing-request で署名を依頼する
+      #         → 署名済みの exe を $env:STAGE に置き直す（下の -ExePath がそれを詰める）
+      #   参考：https://docs.signpath.io/trusted-build-systems/github
+
+      # ---- MSIX に詰める（exe はビルドし直さず、上で取り出したものをそのまま使う） ----
+      - name: Pack Store MSIX
+        run: |
+          [Console]::OutputEncoding = [Text.Encoding]::UTF8
+          ./packaging/msix/Build-Msix.ps1 -Target Store -ExePath (Join-Path $env:STAGE 'PcReport.exe')
+
+      # MSIX の中身を、パッケージから直接読んで出す（提出したものと同じ Identity か、詰めた exe が上の exe か）
+      - name: Inspect MSIX
+        run: |
+          [Console]::OutputEncoding = [Text.Encoding]::UTF8
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $msix = 'packaging/msix/out/PcReport-store.msix'
+          $zip = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $msix).Path)
+          try {
+              $reader = New-Object System.IO.StreamReader($zip.GetEntry('AppxManifest.xml').Open())
+              try { [xml]$m = $reader.ReadToEnd() } finally { $reader.Dispose() }
+              $sha = [System.Security.Cryptography.SHA256]::Create()
+              $s = $zip.GetEntry('PcReport.exe').Open()
+              try { $inner = -join ($sha.ComputeHash($s) | ForEach-Object { $_.ToString('X2') }) } finally { $s.Dispose(); $sha.Dispose() }
+          } finally { $zip.Dispose() }
+          Write-Host ("Identity Name        : {0}" -f $m.Package.Identity.Name)
+          Write-Host ("Publisher            : {0}" -f $m.Package.Identity.Publisher)
+          Write-Host ("PublisherDisplayName : {0}" -f $m.Package.Properties.PublisherDisplayName)
+          Write-Host ("Version              : {0}" -f $m.Package.Identity.Version)
+          Write-Host ("MinVersion           : {0}" -f $m.Package.Dependencies.TargetDeviceFamily.MinVersion)
+          Write-Host ("PcReport.exe in MSIX : SHA256 {0}" -f $inner)
+          $staged = (Get-FileHash (Join-Path $env:STAGE 'PcReport.exe') -Algorithm SHA256).Hash
+          if ($inner -ne $staged) { throw "MSIX の中の exe（$inner）が取り出した exe（$staged）と違う" }
+
+      - name: Collect artifacts
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:DIST | Out-Null
+          Copy-Item (Join-Path $env:STAGE 'PcReport.exe') $env:DIST
+          Copy-Item packaging/msix/out/PcReport-store.msix $env:DIST
+          # sha256sum -c で照合できる形（小文字・空白 2 つ・LF）
+          $lines = foreach ($name in 'PcReport.exe', 'PcReport-store.msix') {
+              '{0}  {1}' -f (Get-FileHash (Join-Path $env:DIST $name) -Algorithm SHA256).Hash.ToLowerInvariant(), $name
+          }
+          [System.IO.File]::WriteAllText((Join-Path $env:DIST 'SHA256SUMS.txt'), (($lines -join "`n") + "`n"))
+          Get-Content (Join-Path $env:DIST 'SHA256SUMS.txt')
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pc-health-check-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error

@@ -50,3 +50,7 @@ TestResults/
 # 公開前レビュー（PCR-006 AC9）で足したもの：tools/Check-PcReport.ps1 の結果は実行者のユーザー名を含む
 # （既定の出力先はリポジトリの外。-OutDir にリポジトリの中を指定したときの事故よけ）
 check-result.txt
+
+# CI（PCR-010、.github/workflows/build.yml）の作業フォルダ：取り出した exe と成果物
+stage/
+dist/
