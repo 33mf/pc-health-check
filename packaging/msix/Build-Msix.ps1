@@ -29,16 +29,23 @@
 .PARAMETER SkipBuild
     exe のビルドを飛ばす（直前にビルド済みのとき）。
 
+.PARAMETER ExePath
+    ビルドせず、指定した PcReport.exe をそのまま詰める（PCR-010。CI で、署名した exe を詰めるための入口）。
+    同じフォルダに PcReport.exe.config があれば一緒に詰める。指定したときは -SkipBuild の有無にかかわらずビルドしない。
+    マニフェストが Executable="PcReport.exe" を指すので、ファイル名は PcReport.exe に限る。
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1
     powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1 -Target Store
     powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1 -Target Store -Sideload
+    powershell -ExecutionPolicy Bypass -File .\packaging\msix\Build-Msix.ps1 -Target Store -ExePath .\stage\PcReport.exe
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('Dev', 'Store')] [string]$Target = 'Dev',
     [switch]$Sideload,
-    [switch]$SkipBuild
+    [switch]$SkipBuild,
+    [string]$ExePath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -100,10 +107,18 @@ $version = '{0}.{1}.{2}.0' -f $productVersion.Major, $productVersion.Minor, [Mat
 
 # ---- 1. 製品のビルド（製品コードは変えない） -----------------------------------
 
-if (-not $SkipBuild) {
-    Invoke-Tool 'dotnet' @('build', $csproj, '-c', 'Release', '-nologo', '-v', 'q')
+if ($ExePath) {
+    # 署名は「exe を作った後、MSIX に詰める前」にしか入れられない。ここで受け取った exe を一切手を加えずに詰める
+    if (-not (Test-Path $ExePath -PathType Leaf)) { throw "-ExePath の exe がありません: $ExePath" }
+    $exe = (Resolve-Path $ExePath).Path
+    if ((Split-Path $exe -Leaf) -ne 'PcReport.exe') { throw "-ExePath のファイル名は PcReport.exe にしてください（マニフェストの Executable と合わせる）: $exe" }
 }
-$exe = Join-Path $binDir 'PcReport.exe'
+else {
+    if (-not $SkipBuild) {
+        Invoke-Tool 'dotnet' @('build', $csproj, '-c', 'Release', '-nologo', '-v', 'q')
+    }
+    $exe = Join-Path $binDir 'PcReport.exe'
+}
 if (-not (Test-Path $exe)) { throw "PcReport.exe がありません: $exe" }
 
 # ---- 2. MakeAppx / SignTool を NuGet から取る ---------------------------------
