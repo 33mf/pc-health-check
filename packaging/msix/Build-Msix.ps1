@@ -109,9 +109,12 @@ $version = '{0}.{1}.{2}.0' -f $productVersion.Major, $productVersion.Minor, [Mat
 
 if ($ExePath) {
     # 署名は「exe を作った後、MSIX に詰める前」にしか入れられない。ここで受け取った exe を一切手を加えずに詰める
-    if (-not (Test-Path $ExePath -PathType Leaf)) { throw "-ExePath の exe がありません: $ExePath" }
-    $exe = (Resolve-Path $ExePath).Path
+    if (-not (Test-Path -LiteralPath $ExePath -PathType Leaf)) { throw "-ExePath の exe がありません: $ExePath" }
+    $exe = (Resolve-Path -LiteralPath $ExePath).Path
     if ((Split-Path $exe -Leaf) -ne 'PcReport.exe') { throw "-ExePath のファイル名は PcReport.exe にしてください（マニフェストの Executable と合わせる）: $exe" }
+    # 渡された exe は別の commit のものかもしれない。MSIX の版（Directory.Build.props から作る）と食い違うなら詰めない
+    $fileVersion = (Get-Item -LiteralPath $exe).VersionInfo.FileVersion
+    if ($fileVersion -ne $version) { throw ("-ExePath の exe の FileVersion（{0}）が MSIX の版（{1}）と違います: {2}" -f $fileVersion, $version, $exe) }
 }
 else {
     if (-not $SkipBuild) {
