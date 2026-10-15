@@ -1,6 +1,6 @@
 # PC 健康診断（PcReport）
 
-提供：Aokumi ／ ライセンス：[MIT](LICENSE) ／ [プライバシーポリシー](https://pc.aokumi.com/privacy.html)
+提供：Aokumi ／ ライセンス：[MIT](LICENSE) ／ [プライバシーポリシー](https://pc.aokumi.com/privacy.html) ／ [Code signing policy](https://pc.aokumi.com/code-signing.html)
 
 ダブルクリックするだけで、この PC の健康診断の結果を**人に送れる HTML 1 枚**にまとめるポータブルツール（Windows 10 1903 以降 / 11）。
 Windows の版と更新、ウイルス対策、CPU・メモリ・ディスク、起動ドライブが SSD か HDD か、ディスクの健康状態、
@@ -23,6 +23,8 @@ Windows 11 の要件のうち TPM とセキュア ブートを調べる（CPU �
 ウイルス対策ソフト（ウイルスバスター）の「不審なファイル」判定で起動が止められ、利用者が許可するまで動かなかった。
 同じくフォルダ保護（フォルダシールド）がデスクトップなどへのレポートの書き込みを止めた（保存先の退避はこのため）。
 新しくビルドした exe は、最初の数回（最大 1 分ほど）「アクセスが拒否されました」で起動しないことがある。
+
+署名の方針と現在の状態は [Code signing policy](https://pc.aokumi.com/code-signing.html) に書いた（SignPath Foundation の無料コード署名を申請準備中）。
 
 **配布物（Releases）はまだ用意していない。** 使うときはソースからビルドする。
 

@@ -33,3 +33,4 @@ lang: ja
 
 - [プライバシーポリシー](privacy.html)
 - [ソースコード（GitHub）](https://github.com/aokumi-apps/pc-health-check)
+- [Code signing policy（コード署名ポリシー）](code-signing.html)
