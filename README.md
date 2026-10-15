@@ -45,6 +45,10 @@ Store の Identity（`MicroForge.PC` と PFN）も識別子なので変えない
 識別子として旧い綴りを許す場所は `ProductNameTests` の除外リストに明示してあり、それ以外に `Microforge` が出たらテストが落ちる。
 旧ブランド `MicroForge` も同じで、Store の Identity（`MicroForge.PC` と PFN）と `PublisherDisplayName` 以外に出たらテストが落ちる（LICENSE と `docs/` も走査する）。
 
+### 開発の進め方
+
+このプロジェクトは 1 人で保守しています。コードの多くは AI（Anthropic の Claude）が書き、すべての変更を保守者が確認してから取り込んでいます。ビルドは GitHub Actions で行い、同じ commit からは同じ exe ができることを確かめています（SHA256 が一致）。
+
 ## 動作環境
 
 | | |
