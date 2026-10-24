@@ -7,11 +7,9 @@ lang: ja
 
 ## 現在の状態 / Status
 
-- **SignPath Foundation の無料コード署名に申請準備中です。**（Preparing an application for free code signing by SignPath Foundation.）
+- **2026-10-18 に SignPath Foundation の無料コード署名に申請しましたが、承認されませんでした。**理由は、このプロジェクトが公開されたばかりで、外部からの評価（利用者・記事など）がまだ十分でないためです。実績が付いたら再申請します。（Applied to SignPath Foundation on 2026-10-18; not approved because the project does not yet have enough public visibility. We plan to reapply later.）
 - **現在配布している `PcReport.exe` はコード署名されていません。**Microsoft Store 版も、パッケージ（MSIX）は Microsoft が署名していますが、中の `PcReport.exe` そのものは未署名です。そのため、ウイルス対策ソフトが初回起動時に「不審なファイル」として確認を求めることがあります。
-- 承認後は、下の手順でビルドした exe に署名してから配布します。
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org)
+- 署名できるようになったら、下の手順でビルドした exe に署名してから配布します。
 
 ## 署名するもの / What is signed
 
